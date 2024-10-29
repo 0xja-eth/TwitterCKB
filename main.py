@@ -16,7 +16,12 @@ stop_event = threading.Event()
 def schedule_emoticon_tweet_thread():
     tweet_interval = 3600  # Send a tweet every hour
     last_tweet_time = time.time()
-    asyncio.run(send_emoticon_tweet())  # Initial send
+
+    # Create a new event loop for the thread
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    # Initial send
+    loop.run_until_complete(send_emoticon_tweet())
 
     while not stop_event.is_set():
         try:

@@ -15,7 +15,7 @@ async def generate_emoticon_tweet():
 
             Please output a JSON object with two fields:
             1. "tweet_prefix": The prefix of the tweet.
-            2. "tweet_content": The main content of the tweet, which should be **no more than 30 characters** long.
+            2. "tweet_content": The main content of the tweet, which should be **no more than 20 characters** long.
             
             Remember, only output the JSON object, nothing else.
             

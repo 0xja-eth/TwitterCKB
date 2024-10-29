@@ -31,6 +31,12 @@ async def transfer_ckb(to_address: str, amount_in_ckb: int):
         async with session.post(url, headers=headers, json=payload) as response:
             if response.status == 200:
                 data = await response.json()
+
+                # print successfully!!!
+                print("\n" + "=" * 30)
+                print("✅  Tweet sent successfully")
+                print("=" * 30 + "\n")
+
                 return f"Transfer successfully! your txHash is {data['txHash']}"
             else:
                 print(f"Failed to transfer CKB, status code: {response.status}")
