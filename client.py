@@ -2,7 +2,8 @@
 import asyncio
 import aiohttp
 
-BASE_URL = "p01--ai-ckb-test-twitter--bcdjt922dnwt.code.run"  # Server URL
+# BASE_URL = "https://p01--ai-ckb-test-twitter--bcdjt922dnwt.code.run"  # Server URL
+BASE_URL = "http://127.0.0.1:8081"
 
 async def start_listen_transactions():
     async with aiohttp.ClientSession() as session:

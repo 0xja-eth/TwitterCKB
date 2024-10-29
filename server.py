@@ -83,6 +83,7 @@ async def listen_for_transactions():
     finally:
         is_transaction_listener_running = False  # Reset flag on exit
 
+
 # Function to send emoticon tweets at intervals, runs in a separate thread
 def schedule_emoticon_tweet_thread():
     global is_status_update_running
@@ -110,6 +111,7 @@ def schedule_emoticon_tweet_thread():
     print("Stopped schedule_emoticon_tweet_thread.")
     is_status_update_running = False  # Reset flag on exit
 
+
 @app.post("/start_listen_transactions")
 async def start_listen_transactions(background_tasks: BackgroundTasks):
     global is_transaction_listener_running
@@ -120,6 +122,7 @@ async def start_listen_transactions(background_tasks: BackgroundTasks):
     background_tasks.add_task(listen_for_transactions)
     return {"status": 200, "message": "Transaction listener started successfully."}
 
+
 @app.post("/stop_listen_transactions")
 async def stop_listen_transactions():
     global is_transaction_listener_running
@@ -128,6 +131,7 @@ async def stop_listen_transactions():
     transaction_stop_event.set()  # Signal to stop the listener
     is_transaction_listener_running = False
     return {"status": 200, "message": "Transaction listener stopped successfully."}
+
 
 @app.post("/chat")
 async def chat_with_ai(request: ChatRequest):
