@@ -60,15 +60,18 @@ async def send_emoticon_tweet():
     return tweet_content
 
 
-async def send_thanks_tweet(user_address: str):
+async def send_thanks_tweet(user_address: str, value):
     # Generate tweet data (prefix and content) for thank-you message
     tweet_data = await generate_thanks_tweet()
     if not tweet_data:
         print("Failed to generate tweet data.")
         return None
 
+    # Generate emoticon based on balance
+    emoticon = generate_balance_emoticon(value)
+
     # Construct the tweet content by inserting the @user_address
-    tweet_content = f"{tweet_data['tweet_prefix']} @{user_address}\n{tweet_data['tweet_content']}"
+    tweet_content = f"{tweet_data['tweet_prefix']} @{user_address}\n{emoticon}\n{tweet_data['tweet_content']}"
 
     # Post the tweet
     await post_tweet(tweet_content)
@@ -171,8 +174,9 @@ async def chat_with_openai(user_input):
 
             # Add the result to conversation history
             messages.append({"role": "assistant", "content": str(result)})
-
+            return result
     else:
         # Print AI's response
         print("AI:", message.content)
         messages.append({"role": "assistant", "content": message.content})
+        return message.content

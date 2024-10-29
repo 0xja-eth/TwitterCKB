@@ -6,17 +6,23 @@ import sys
 import threading
 import time
 from fastapi import FastAPI, BackgroundTasks
+from pydantic import BaseModel
 
 from config.config import redis_client, OUR_ADDRESS
 from openai_api.chat import chat_with_openai, send_emoticon_tweet, send_thanks_tweet
 from openai_api.thanks_gen import generate_thanks_tweet
+from utils.emoticon import generate_balance_emoticon
 
 app = FastAPI()
 
 # Define a global stop event for the status update thread
 stop_event = threading.Event()
+transaction_stop_event = asyncio.Event()
 is_status_update_running = False
 is_transaction_listener_running = False
+
+class ChatRequest(BaseModel):
+    message: str
 
 async def listen_for_transactions():
     """
@@ -30,7 +36,7 @@ async def listen_for_transactions():
         print("OUR_ADDRESS not set in environment variables.")
         return
     try:
-        while True:
+        while not transaction_stop_event.is_set():
             # 获取所有 txHashes，从 ZSET 'transaction_hash'
             tx_hashes = await redis_client.zrange("transaction_hash", 0, -1)
             for tx_hash in tx_hashes:
@@ -62,7 +68,8 @@ async def listen_for_transactions():
                                 sender = sender_addresses[0]  # 假设第一个输入是发送者
                                 print(f"Detected transfer from {sender} to {OUR_ADDRESS}, txHash: {tx_hash}")
 
-                                response = await send_thanks_tweet(sender)
+                                response = await send_thanks_tweet(sender, int(change.get("value", "1")))
+                                await asyncio.sleep(5)
                                 print(f"Thank-you tweet response: {response}")
                             else:
                                 print(f"🔍 No sender address found in transaction {tx_hash}")
@@ -116,16 +123,26 @@ async def start_listen_transactions(background_tasks: BackgroundTasks):
     if is_transaction_listener_running:
         return {"status": 400, "message": "Transaction listener is already running."}
     is_transaction_listener_running = True
+    transaction_stop_event.clear()  # Ensure previous stop event is cleared
     background_tasks.add_task(listen_for_transactions)
     return {"status": 200, "message": "Transaction listener started successfully."}
 
+@app.post("/stop_listen_transactions")
+async def stop_listen_transactions():
+    global is_transaction_listener_running
+    if not is_transaction_listener_running:
+        return {"status": 400, "message": "Transaction listener is not running."}
+    transaction_stop_event.set()  # Signal to stop the listener
+    is_transaction_listener_running = False
+    return {"status": 200, "message": "Transaction listener stopped successfully."}
+
 @app.post("/chat")
-async def chat_with_ai(message: str):
+async def chat_with_ai(request: ChatRequest):
     """
     Chat endpoint to interact with OpenAI chat.
     :param message: The message to send to the OpenAI chat API.
     """
-    response = await chat_with_openai(message)
+    response = await chat_with_openai(request.message)
     return {"status": 200, "msg": "success", "response": response}
 
 
