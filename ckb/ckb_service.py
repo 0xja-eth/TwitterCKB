@@ -34,7 +34,7 @@ async def transfer_ckb(to_address: str, amount_in_ckb: int):
 
                 # print successfully!!!
                 print("\n" + "=" * 30)
-                print("✅  Tweet sent successfully")
+                print("✅  Transfer CKB successfully")
                 print("=" * 30 + "\n")
 
                 return f"Transfer successfully! your txHash is {data['txHash']}"
