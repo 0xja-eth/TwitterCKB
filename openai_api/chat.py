@@ -61,7 +61,7 @@ async def send_emoticon_tweet():
     tweet_content = f"{tweet_data['tweet_prefix']} {emoticon}\n{tweet_data['tweet_content']}"
 
     # Post the tweet
-    await post_tweet(tweet_content)
+    post_result = await post_tweet(tweet_content)
     return tweet_content
 
 
@@ -79,8 +79,8 @@ async def send_thanks_tweet(user_address: str, value):
     tweet_content = f"{tweet_data['tweet_prefix']} @{user_address}\n{emoticon}\n{tweet_data['tweet_content']}"
 
     # Post the tweet
-    await post_tweet(tweet_content)
-    return tweet_content
+    post_result = await post_tweet(tweet_content)
+    return tweet_content, post_result
 
 
 # Define functions for OpenAI to call

@@ -14,8 +14,10 @@ async def post_tweet(content, image_paths=None):
         print("\n" + "=" * 30)
         print("Tweet sent successfully")
         print("=" * 30 + "\n")
+        return True
     except Exception as e:
         print("\n" + "=" * 30)
         print(f"Tweet send failed, please try again later: {e}")
         print("=" * 30 + "\n")
+        return False
 

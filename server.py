@@ -44,6 +44,7 @@ async def listen_for_transactions():
                     tx_hash = tx_hash.decode("utf-8")
                     # Get tx_data from tx_hash
                     tx_data = await redis_client.hget("transactions", tx_hash)
+                    post_result = False
                     if tx_data:
                         try:
                             tx_data = json.loads(tx_data.decode("utf-8"))
@@ -67,14 +68,14 @@ async def listen_for_transactions():
                                     sender = sender_addresses[0]
                                     print(f"Detected transfer from {sender} to {OUR_ADDRESS}, txHash: {tx_hash}")
 
-                                    response = await send_thanks_tweet(sender, int(change.get("value", "1")))
+                                    response, post_result = await send_thanks_tweet(sender, int(change.get("value", "1")))
                                     await asyncio.sleep(5)
                                     print(f"Thank-you tweet response: {response}")
                                 else:
                                     print(f"🔍 No sender address found in transaction {tx_hash}")
-
-                        tx_data['processed'] = True
-                        await redis_client.hset("transactions", tx_hash, json.dumps(tx_data))
+                        if post_result:
+                            tx_data['processed'] = True
+                            await redis_client.hset("transactions", tx_hash, json.dumps(tx_data))
                     else:
                         print(f"No transaction data found for txHash: {tx_hash}")
             except Exception as e:
