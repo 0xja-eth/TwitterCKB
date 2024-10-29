@@ -37,46 +37,48 @@ async def listen_for_transactions():
         return
     try:
         while not transaction_stop_event.is_set():
-            # Get all txHashes
-            tx_hashes = await redis_client.zrange("transaction_hash", 0, -1)
-            for tx_hash in tx_hashes:
-                tx_hash = tx_hash.decode("utf-8")
-                # Get tx_data from tx_hash
-                tx_data = await redis_client.hget("transactions", tx_hash)
-                if tx_data:
-                    try:
-                        tx_data = json.loads(tx_data.decode("utf-8"))
-                    except json.JSONDecodeError:
-                        print(f"Failed to decode transaction data for txHash: {tx_hash}")
-                        # tag as processed
-                        updated_tx_data = {"processed": True, "error": "Invalid JSON"}
-                        await redis_client.hset("transactions", tx_hash, json.dumps(updated_tx_data))
-                        continue
+            try:
+                # Get all txHashes
+                tx_hashes = await redis_client.zrange("transaction_hash", 0, -1)
+                for tx_hash in tx_hashes:
+                    tx_hash = tx_hash.decode("utf-8")
+                    # Get tx_data from tx_hash
+                    tx_data = await redis_client.hget("transactions", tx_hash)
+                    if tx_data:
+                        try:
+                            tx_data = json.loads(tx_data.decode("utf-8"))
+                        except json.JSONDecodeError:
+                            print(f"Failed to decode transaction data for txHash: {tx_hash}")
+                            # tag as processed
+                            updated_tx_data = {"processed": True, "error": "Invalid JSON"}
+                            await redis_client.hset("transactions", tx_hash, json.dumps(updated_tx_data))
+                            continue
 
-                    # check if deal
-                    if tx_data.get("processed", False):
-                        continue
+                        # check if deal
+                        if tx_data.get("processed", False):
+                            continue
 
-                    balance_changes = tx_data.get("balanceChanges", [])
-                    for change in balance_changes:
-                        if change.get("address") == OUR_ADDRESS and int(change.get("value", "0")) > 0:
-                            inputs = tx_data.get("inputs", [])
-                            sender_addresses = [inp.get("address") for inp in inputs if inp.get("address")]
-                            if sender_addresses:
-                                sender = sender_addresses[0]
-                                print(f"Detected transfer from {sender} to {OUR_ADDRESS}, txHash: {tx_hash}")
+                        balance_changes = tx_data.get("balanceChanges", [])
+                        for change in balance_changes:
+                            if change.get("address") == OUR_ADDRESS and int(change.get("value", "0")) > 0:
+                                inputs = tx_data.get("inputs", [])
+                                sender_addresses = [inp.get("address") for inp in inputs if inp.get("address")]
+                                if sender_addresses:
+                                    sender = sender_addresses[0]
+                                    print(f"Detected transfer from {sender} to {OUR_ADDRESS}, txHash: {tx_hash}")
 
-                                response = await send_thanks_tweet(sender, int(change.get("value", "1")))
-                                await asyncio.sleep(5)
-                                print(f"Thank-you tweet response: {response}")
-                            else:
-                                print(f"🔍 No sender address found in transaction {tx_hash}")
+                                    response = await send_thanks_tweet(sender, int(change.get("value", "1")))
+                                    await asyncio.sleep(5)
+                                    print(f"Thank-you tweet response: {response}")
+                                else:
+                                    print(f"🔍 No sender address found in transaction {tx_hash}")
 
-                    tx_data['processed'] = True
-                    await redis_client.hset("transactions", tx_hash, json.dumps(tx_data))
-                else:
-                    print(f"No transaction data found for txHash: {tx_hash}")
-
+                        tx_data['processed'] = True
+                        await redis_client.hset("transactions", tx_hash, json.dumps(tx_data))
+                    else:
+                        print(f"No transaction data found for txHash: {tx_hash}")
+            except Exception as e:
+                print(f"Error in listen_for_transactions: {e}")
             await asyncio.sleep(5)
     except Exception as e:
         print(f"Error in listen_for_transactions: {e}")
