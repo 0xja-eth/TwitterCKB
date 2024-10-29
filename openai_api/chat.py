@@ -101,8 +101,9 @@ async def handle_openai_function_call(function_name, args):
 
 async def chat_with_openai(user_input):
     # Set proxy
-    os.environ['HTTP_PROXY'] = HTTP_PROXY
-    os.environ['HTTPS_PROXY'] = HTTPS_PROXY
+    if HTTP_PROXY is not "" and HTTP_PROXY is not None:
+        os.environ['HTTP_PROXY'] = HTTP_PROXY
+        os.environ['HTTPS_PROXY'] = HTTPS_PROXY
 
     if user_input.lower() in ["exit", "quit", "q", "4"]:
         print("Exiting the chat and returning to main menu...")
