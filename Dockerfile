@@ -8,9 +8,6 @@ WORKDIR /app
 # 复制项目文件到容器
 COPY . /app
 
-# 设置 pip 使用清华源
-RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-
 # 安装依赖
 RUN pip install --no-cache-dir -r requirements.txt
 
