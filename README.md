@@ -35,6 +35,12 @@ cd TwitterCKB
 ```
 ## Package
 ```bash
-pyinstaller --onefile  main.py
+pyinstaller --onefile  client.py
+```
+
+## Deployment
+```bash
+
+
 ```
 

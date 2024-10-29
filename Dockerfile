@@ -1,5 +1,5 @@
 # 使用Python官方镜像
-FROM python:3.11-slim
+FROM python:3.11
 LABEL authors="GaryMa"
 
 # 设置工作目录
