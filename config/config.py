@@ -12,7 +12,7 @@ EMAIL = os.getenv('TWITTER_EMAIL', "")
 PASSWORD = os.getenv('TWITTER_PASSWORD', "")
 HTTP_PROXY = os.getenv('HTTP_PROXY', None)
 HTTPS_PROXY = os.getenv('HTTPS_PROXY', None)
-COOKIE_PATH = "cookies.json"
+COOKIE_PATH = ""
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', "")
 AI_TOKEN = os.getenv('AI_TOKEN', "")
 REDIS_URL = os.getenv('REDIS_URL', "")
@@ -24,7 +24,8 @@ REDIS_DB = int(os.getenv("REDIS_DB", 0))
 REDIS_TLS = os.getenv("REDIS_TLS", "false").lower() == "true"
 REDIS_SNI = os.getenv("REDIS_SNI", None)
 OUR_ADDRESS = os.getenv("OUR_ADDRESS", "")
-
+# 从环境变量中加载 cookies
+COOKIES_JSON = os.getenv("COOKIES_JSON")
 
 # set SSL 和 SNI
 ssl_context = None
