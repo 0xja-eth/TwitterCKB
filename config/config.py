@@ -3,7 +3,7 @@ import asyncio
 import os
 import ssl
 
-import redis.asyncio as redis  # 使用 redis 库的 asyncio 版本
+import redis.asyncio as redis  # use redis
 from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=".env")
@@ -26,21 +26,16 @@ REDIS_SNI = os.getenv("REDIS_SNI", None)
 OUR_ADDRESS = os.getenv("OUR_ADDRESS", "")
 
 
-# 配置 SSL 和 SNI
+# set SSL 和 SNI
 ssl_context = None
 if REDIS_TLS:
     ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
     if REDIS_SNI:
         ssl_context.check_hostname = True
-        # 在建立连接时，`redis-py` 会自动处理 SNI
-        # 因此无需手动设置 `server_hostname`
-        # 你只需要确保 SSLContext 配置正确即可
 
-# 创建 Redis URL，根据是否启用 TLS 选择协议
 protocol = "rediss" if REDIS_TLS else "redis"
 redis_url = f"{protocol}://{REDIS_HOST}:{REDIS_PORT}"
 
-# 创建异步 Redis 客户端
 redis_client = redis.from_url(
     redis_url,
     password=REDIS_PASSWORD,
@@ -58,6 +53,3 @@ async def check_redis_connection():
 if __name__ == "__main__":
     asyncio.run(check_redis_connection())
 
-
-# # 创建异步 Redis 连接
-# redis_client = redis.from_url(REDIS_URL)

@@ -37,35 +37,33 @@ async def listen_for_transactions():
         return
     try:
         while not transaction_stop_event.is_set():
-            # 获取所有 txHashes，从 ZSET 'transaction_hash'
+            # Get all txHashes
             tx_hashes = await redis_client.zrange("transaction_hash", 0, -1)
             for tx_hash in tx_hashes:
-                tx_hash = tx_hash.decode("utf-8")  # 将 bytes 转为 str
-                # 从 HASH 'transactions' 中获取交易数据
+                tx_hash = tx_hash.decode("utf-8")
+                # Get tx_data from tx_hash
                 tx_data = await redis_client.hget("transactions", tx_hash)
                 if tx_data:
                     try:
                         tx_data = json.loads(tx_data.decode("utf-8"))
                     except json.JSONDecodeError:
                         print(f"Failed to decode transaction data for txHash: {tx_hash}")
-                        # 标记为 processed，但交易数据无法解析
+                        # tag as processed
                         updated_tx_data = {"processed": True, "error": "Invalid JSON"}
                         await redis_client.hset("transactions", tx_hash, json.dumps(updated_tx_data))
                         continue
 
-                    # 检查是否已处理
+                    # check if deal
                     if tx_data.get("processed", False):
-                        continue  # 跳过已处理的交易
+                        continue
 
-                    # 检查 balanceChanges 是否有转账到我们的地址
                     balance_changes = tx_data.get("balanceChanges", [])
                     for change in balance_changes:
                         if change.get("address") == OUR_ADDRESS and int(change.get("value", "0")) > 0:
-                            # 找到发送给我们的地址的地址
                             inputs = tx_data.get("inputs", [])
                             sender_addresses = [inp.get("address") for inp in inputs if inp.get("address")]
                             if sender_addresses:
-                                sender = sender_addresses[0]  # 假设第一个输入是发送者
+                                sender = sender_addresses[0]
                                 print(f"Detected transfer from {sender} to {OUR_ADDRESS}, txHash: {tx_hash}")
 
                                 response = await send_thanks_tweet(sender, int(change.get("value", "1")))
@@ -74,16 +72,11 @@ async def listen_for_transactions():
                             else:
                                 print(f"🔍 No sender address found in transaction {tx_hash}")
 
-                    # 标记 txHash 为已处理
                     tx_data['processed'] = True
                     await redis_client.hset("transactions", tx_hash, json.dumps(tx_data))
                 else:
                     print(f"No transaction data found for txHash: {tx_hash}")
 
-                # 不删除 txHash，保留在 ZSET 中
-                # await redis_client.zrem("transaction_hash", tx_hash)
-
-            # 暂停几秒再继续循环
             await asyncio.sleep(5)
     except Exception as e:
         print(f"Error in listen_for_transactions: {e}")
