@@ -1,3 +1,4 @@
+# openai_api
 from openai import OpenAI
 
 from config.config import OPENAI_API_KEY

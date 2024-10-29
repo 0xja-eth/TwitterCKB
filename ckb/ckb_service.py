@@ -1,3 +1,4 @@
+# ckb/ckb_service.py
 import asyncio
 import aiohttp
 from dotenv import load_dotenv
@@ -34,7 +35,7 @@ async def transfer_ckb(to_address: str, amount_in_ckb: int):
 
                 # print successfully!!!
                 print("\n" + "=" * 30)
-                print("✅  Transfer CKB successfully")
+                print("Transfer CKB successfully")
                 print("=" * 30 + "\n")
 
                 return f"Transfer successfully! your txHash is {data['txHash']}"

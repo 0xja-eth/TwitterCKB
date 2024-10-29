@@ -1,3 +1,4 @@
+# twitter/client.py
 import os
 from twikit import Client
 from config.config import EMAIL, USERNAME, PASSWORD, COOKIE_PATH, HTTP_PROXY

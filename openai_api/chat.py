@@ -1,7 +1,9 @@
+# openai_api/chat.py
 import os
 
 from ckb.ckb_service import fetch_balance, transfer_ckb
 from config.config import HTTP_PROXY, HTTPS_PROXY
+from openai_api.thanks_gen import generate_thanks_tweet
 from twitter.client import login
 from openai_api import ai_client
 from openai_api.emoticon_gen import generate_emoticon_tweet
@@ -58,6 +60,21 @@ async def send_emoticon_tweet():
     return tweet_content
 
 
+async def send_thanks_tweet(user_address: str):
+    # Generate tweet data (prefix and content) for thank-you message
+    tweet_data = await generate_thanks_tweet()
+    if not tweet_data:
+        print("Failed to generate tweet data.")
+        return None
+
+    # Construct the tweet content by inserting the @user_address
+    tweet_content = f"{tweet_data['tweet_prefix']} @{user_address}\n{tweet_data['tweet_content']}"
+
+    # Post the tweet
+    await post_tweet(tweet_content)
+    return tweet_content
+
+
 # Define functions for OpenAI to call
 async def handle_openai_function_call(function_name, args):
     if function_name == "post_tweet":
@@ -79,88 +96,83 @@ async def handle_openai_function_call(function_name, args):
         return {"error": "Function not supported"}
 
 
-async def chat_with_openai():
-    global selected_mode
-
+async def chat_with_openai(user_input):
     # Set proxy
     os.environ['HTTP_PROXY'] = HTTP_PROXY
     os.environ['HTTPS_PROXY'] = HTTPS_PROXY
 
-    while True:
-        user_input = input("You: ")
+    if user_input.lower() in ["exit", "quit", "q", "4"]:
+        print("Exiting the chat and returning to main menu...")
+        return
 
-        if user_input.lower() in ["exit", "quit", "q", "4"]:
-            print("Exiting the chat and returning to main menu...")
-            break
+    # Add user input to conversation history
+    messages.append({"role": "user", "content": user_input})
 
-        # Add user input to conversation history
-        messages.append({"role": "user", "content": user_input})
-
-        # Send user input and define available functions
-        response = ai_client.chat.completions.create(
-            model="gpt-4o-mini-2024-07-18",
-            messages=messages,
-            tools=[
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "post_tweet",
-                        "description": "Send a tweet with specified content",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "content": {"type": "string", "description": "Text of the tweet"}
-                            },
-                            "required": ["content"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "send_emoticon_tweet",
-                        "description": "Generate an emoticon based on balance and then send it to twitter",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {},
-                            "required": []
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "transfer_ckb",
-                        "description": "Transfers CKB to the specified address",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "to_address": {"type": "string", "description": "The recipient's CKB address"},
-                                "amount_in_ckb": {"type": "integer", "description": "Amount to transfer in CKB"}
-                            },
-                            "required": ["to_address", "amount_in_ckb"]
-                        }
+    # Send user input and define available functions
+    response = ai_client.chat.completions.create(
+        model="gpt-4o-mini-2024-07-18",
+        messages=messages,
+        tools=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "post_tweet",
+                    "description": "Send a tweet with specified content",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "content": {"type": "string", "description": "Text of the tweet"}
+                        },
+                        "required": ["content"]
                     }
                 }
-            ],
-            tool_choice="auto"
-        )
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "send_emoticon_tweet",
+                    "description": "Generate an emoticon based on balance and then send it to twitter",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "transfer_ckb",
+                    "description": "Transfers CKB to the specified address",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "to_address": {"type": "string", "description": "The recipient's CKB address"},
+                            "amount_in_ckb": {"type": "integer", "description": "Amount to transfer in CKB"}
+                        },
+                        "required": ["to_address", "amount_in_ckb"]
+                    }
+                }
+            }
+        ],
+        tool_choice="auto"
+    )
 
-        # Check if function call is needed
-        message = response.choices[0].message
-        if message.tool_calls:
-            for tool_call in message.tool_calls:
-                function_name = tool_call.function.name
-                function_args = eval(tool_call.function.arguments)
+    # Check if function call is needed
+    message = response.choices[0].message
+    if message.tool_calls:
+        for tool_call in message.tool_calls:
+            function_name = tool_call.function.name
+            function_args = eval(tool_call.function.arguments)
 
-                # Call the corresponding function
-                result = await handle_openai_function_call(function_name, function_args)
-                print("AI:", result)
+            # Call the corresponding function
+            result = await handle_openai_function_call(function_name, function_args)
+            print("AI:", result)
 
-                # Add the result to conversation history
-                messages.append({"role": "assistant", "content": str(result)})
+            # Add the result to conversation history
+            messages.append({"role": "assistant", "content": str(result)})
 
-        else:
-            # Print AI's response
-            print("AI:", message.content)
-            messages.append({"role": "assistant", "content": message.content})
+    else:
+        # Print AI's response
+        print("AI:", message.content)
+        messages.append({"role": "assistant", "content": message.content})
