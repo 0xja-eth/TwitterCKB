@@ -69,7 +69,7 @@ async def listen_for_transactions():
                                     print(f"Detected transfer from {sender} to {OUR_ADDRESS}, txHash: {tx_hash}")
 
                                     response, post_result = await send_thanks_tweet(sender, int(change.get("value", "1")))
-                                    await asyncio.sleep(5)
+                                    await asyncio.sleep(8)
                                     print(f"Thank-you tweet response: {response}")
                                 else:
                                     print(f"🔍 No sender address found in transaction {tx_hash}")
@@ -80,7 +80,7 @@ async def listen_for_transactions():
                         print(f"No transaction data found for txHash: {tx_hash}")
             except Exception as e:
                 print(f"Error in listen_for_transactions: {e}")
-            await asyncio.sleep(5)
+            await asyncio.sleep(15)
     except Exception as e:
         print(f"Error in listen_for_transactions: {e}")
     finally:

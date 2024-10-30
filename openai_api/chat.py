@@ -58,7 +58,7 @@ async def send_emoticon_tweet():
     emoticon = generate_balance_emoticon(balance)
 
     # Construct the tweet content
-    tweet_content = f"{tweet_data['tweet_prefix']} {emoticon}\n{tweet_data['tweet_content']}"
+    tweet_content = f"{tweet_data['tweet_prefix']}\n {emoticon}\n{tweet_data['tweet_content']}"
 
     # Post the tweet
     post_result = await post_tweet(tweet_content)
