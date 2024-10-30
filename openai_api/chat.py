@@ -106,7 +106,7 @@ async def handle_openai_function_call(function_name, args):
 
 async def chat_with_openai(user_input):
     # Set proxy
-    if HTTP_PROXY is not "" and HTTP_PROXY is not None:
+    if HTTP_PROXY != "" and HTTP_PROXY is not None:
         os.environ['HTTP_PROXY'] = HTTP_PROXY
         os.environ['HTTPS_PROXY'] = HTTPS_PROXY
 
