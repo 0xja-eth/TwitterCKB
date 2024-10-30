@@ -37,11 +37,3 @@ cd TwitterCKB
 ```bash
 pyinstaller --onefile  client.py
 ```
-
-## Deployment
-```bash
-
-
-```
-
-please post a tweet for my happy spirit!
