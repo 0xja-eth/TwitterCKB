@@ -1,5 +1,6 @@
 # twitter/tweet.py
 import asyncio
+import base64
 import os
 from datetime import datetime
 
@@ -12,6 +13,7 @@ import time
 # Global variable to stop the loop
 fetch_and_analyze_stop_event = asyncio.Event()
 is_fetch_and_analyze_active = False
+
 
 async def post_tweet(content, image_paths=None):
     await login()  # Ensure login first
@@ -39,7 +41,7 @@ async def fetch_and_analyze_replies(user_id):
     initial_timestamp = datetime.now().timestamp() - 365 * 24 * 60 * 60
 
     while not fetch_and_analyze_stop_event.is_set():
-        if os.getenv("is_transfer", "False").lower() != "true" or not is_fetch_and_analyze_active:
+        if os.getenv("IS_TRANSFER", "False").lower() != "true" or not is_fetch_and_analyze_active:
             print("Transfer environment setting or fetch mode is disabled. Pausing task.")
             await asyncio.sleep(15)  # Wait before rechecking
             continue
@@ -49,11 +51,8 @@ async def fetch_and_analyze_replies(user_id):
             for tweet in tweets:
                 tweet_id = tweet.id
                 tweet = await client.get_tweet_by_id(tweet_id)
-
-                # Retrieve last cursor and processed time
-                last_next_cursor = await redis_client.get(f"next_cursor:{tweet_id}")
-                if not last_next_cursor:
-                    last_next_cursor = None
+                replies_count = tweet.reply_count
+                now_count = 0
 
                 last_processed_time = await redis_client.get(f"last_processed_time:{tweet_id}")
                 if not last_processed_time:
@@ -62,9 +61,7 @@ async def fetch_and_analyze_replies(user_id):
                 else:
                     last_processed_time = float(last_processed_time)
 
-                # get comments
-                # replies = tweet.replies
-                replies = tweet.replies(next_cursor=last_next_cursor) if last_next_cursor else tweet.replies
+                replies = tweet.replies
 
                 while replies:
                     for reply in replies:
@@ -72,6 +69,7 @@ async def fetch_and_analyze_replies(user_id):
 
                         # Skip replies processed previously
                         if reply_timestamp <= float(last_processed_time):
+                            now_count += 1
                             continue
 
                         print("Reply:", reply.full_text)
@@ -102,11 +100,10 @@ async def fetch_and_analyze_replies(user_id):
                         last_processed_time = reply_timestamp
                         await redis_client.set(f"last_processed_time:{tweet_id}", last_processed_time)
 
-                    if replies.next:
-                        last_next_cursor = replies.next_cursor
+                        now_count += 1
+
+                    if replies.next and now_count <= replies_count:
                         replies = await replies.next()
-                        if last_next_cursor:
-                            await redis_client.set(f"next_cursor:{tweet_id}", last_next_cursor)
                     else:
                         break  # if no more, break it
         except Exception as e:

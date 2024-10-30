@@ -30,7 +30,7 @@ class ChatRequest(BaseModel):
     message: str
 
 
-class FetchAndAnalyzeReplies(BaseModel):
+class FetchAndAnalyzeRepliesRequest(BaseModel):
     user_id: str
 
 
@@ -184,18 +184,18 @@ async def stop_status_update_mode():
 
 
 @app.post("/fetch_and_analyze_replies")
-async def fetch_and_analyze_replies_mode(user_id: str):
-    global is_fetch_and_analyze_active
-    if os.getenv("is_transfer", "False").lower() == "true" and is_fetch_and_analyze_active:
-        await fetch_and_analyze_replies(user_id)
+async def fetch_and_analyze_replies_mode(request: FetchAndAnalyzeRepliesRequest, background_tasks: BackgroundTasks):
+    is_fetch_and_analyze_active = get_is_fetch_and_analyze_active()
+    if os.getenv("IS_TRANSFER", "False").lower() == "true" and is_fetch_and_analyze_active:
+        background_tasks.add_task(fetch_and_analyze_replies,request.user_id)
         return {"status": 200, "message": "success"}
     else:
-        return {"status": 200, "message": "success", "data": "Transfers are disabled by system settings."}
+        return {"status": 403, "message": "success", "data": "Transfers are disabled by system settings."}
 
 
 @app.post("/start_fetch_and_analyze")
 async def start_fetch_and_analyze_mode():
-    if os.getenv("is_transfer", "False").lower() != "true":
+    if os.getenv("IS_TRANSFER", "False").lower() != "true":
         return {"status": 403, "message": "Transfers are disabled by system environment setting."}
 
     set_is_fetch_and_analyze_active(True)
