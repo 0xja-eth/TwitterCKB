@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 
 from ckb.ckb_service import transfer_ckb, transfer_token
-from config.config import redis_client, SEAL_XUDT_ARGS
+from config.config import redis_client, SEAL_XUDT_ARGS, CKB_MIN, CKB_MAX, SEAL_MAX, SEAL_MIN
 from openai_api.award_gen import analyze_reply_for_transfer
 from twitter.client import client, login
 import time
@@ -84,16 +84,19 @@ async def fetch_and_analyze_replies(user_id):
                         amount = response.get("amount")
                         currency_type = response.get("currency_type")
 
-                        if to_address and amount and currency_type:
-                            if currency_type == "CKB":
-                                transfer_result = await transfer_ckb(to_address, amount)
-                            elif currency_type == "Seal":
-                                transfer_result = await transfer_token(to_address, amount, SEAL_XUDT_ARGS)
-                            else:
-                                print("Unrecognized currency type in response:", currency_type)
-                                continue
+                        # just for test
+                        # if to_address and amount and currency_type:
+                        #     if currency_type == "CKB":
+                        #         if CKB_MIN <= amount <= CKB_MAX:
+                        #             transfer_result = await transfer_ckb(to_address, amount)
+                        #     elif currency_type == "Seal":
+                        #         if SEAL_MIN <= amount <= SEAL_MAX:
+                        #             transfer_result = await transfer_token(to_address, amount, SEAL_XUDT_ARGS)
+                        #     else:
+                        #         print("Unrecognized currency type in response:", currency_type)
+                        #         continue
 
-                            print("Transfer Result:", transfer_result)
+                            # print("Transfer Result:", transfer_result)
 
                         # Update last processed time
                         last_processed_time = reply_timestamp
