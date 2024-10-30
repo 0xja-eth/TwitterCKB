@@ -1,6 +1,17 @@
 # twitter/tweet.py
-from twitter.client import client, login
+import asyncio
+import os
+from datetime import datetime
 
+from ckb.ckb_service import transfer_ckb, transfer_token
+from config.config import redis_client, SEAL_XUDT_ARGS
+from openai_api.award_gen import analyze_reply_for_transfer
+from twitter.client import client, login
+import time
+
+# Global variable to stop the loop
+fetch_and_analyze_stop_event = asyncio.Event()
+is_fetch_and_analyze_active = False
 
 async def post_tweet(content, image_paths=None):
     await login()  # Ensure login first
@@ -21,3 +32,91 @@ async def post_tweet(content, image_paths=None):
         print("=" * 30 + "\n")
         return False
 
+
+async def fetch_and_analyze_replies(user_id):
+    await login()
+    # Define an initial timestamp set to a year in the past
+    initial_timestamp = datetime.now().timestamp() - 365 * 24 * 60 * 60
+
+    while not fetch_and_analyze_stop_event.is_set():
+        if os.getenv("is_transfer", "False").lower() != "true" or not is_fetch_and_analyze_active:
+            print("Transfer environment setting or fetch mode is disabled. Pausing task.")
+            await asyncio.sleep(15)  # Wait before rechecking
+            continue
+
+        try:
+            tweets = await client.get_user_tweets(user_id, "Tweets")
+            for tweet in tweets:
+                tweet_id = tweet.id
+                tweet = await client.get_tweet_by_id(tweet_id)
+
+                # Retrieve last cursor and processed time
+                last_next_cursor = await redis_client.get(f"next_cursor:{tweet_id}")
+                if not last_next_cursor:
+                    last_next_cursor = None
+
+                last_processed_time = await redis_client.get(f"last_processed_time:{tweet_id}")
+                if not last_processed_time:
+                    last_processed_time = initial_timestamp
+                    await redis_client.set(f"last_processed_time:{tweet_id}", last_processed_time)
+                else:
+                    last_processed_time = float(last_processed_time)
+
+                # get comments
+                # replies = tweet.replies
+                replies = tweet.replies(next_cursor=last_next_cursor) if last_next_cursor else tweet.replies
+
+                while replies:
+                    for reply in replies:
+                        reply_timestamp = reply.created_at_datetime.timestamp()
+
+                        # Skip replies processed previously
+                        if reply_timestamp <= float(last_processed_time):
+                            continue
+
+                        print("Reply:", reply.full_text)
+
+                        # analyze and process comment
+                        response = await analyze_reply_for_transfer(reply.full_text)
+
+                        # Check if an address and amount are present
+                        to_address = response.get("to_address")
+                        amount = response.get("amount")
+                        currency_type = response.get("currency_type")
+
+                        if to_address and amount and currency_type:
+                            if currency_type == "CKB":
+                                transfer_result = await transfer_ckb(to_address, amount)
+                            elif currency_type == "Seal":
+                                transfer_result = await transfer_token(to_address, amount, SEAL_XUDT_ARGS)
+                            else:
+                                print("Unrecognized currency type in response:", currency_type)
+                                continue
+
+                            print("Transfer Result:", transfer_result)
+
+                        # Update last processed time
+                        last_processed_time = reply_timestamp
+                        await redis_client.set(f"last_processed_time:{tweet_id}", last_processed_time)
+
+                    if replies.next:
+                        last_next_cursor = replies.next_cursor
+                        replies = await replies.next()
+                        if last_next_cursor:
+                            await redis_client.set(f"next_cursor:{tweet_id}", last_next_cursor)
+                    else:
+                        break  # if no more, break it
+        except Exception as e:
+            print("\n" + "=" * 30)
+            print(f"Failed to retrieve replies: {e}")
+            print("=" * 30 + "\n")
+            return []
+
+
+def get_is_fetch_and_analyze_active():
+    return is_fetch_and_analyze_active
+
+
+def set_is_fetch_and_analyze_active(is_fetch):
+    global is_fetch_and_analyze_active
+    is_fetch_and_analyze_active = is_fetch

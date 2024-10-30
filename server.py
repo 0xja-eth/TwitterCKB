@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 import sys
 import threading
 import time
@@ -11,6 +12,8 @@ from pydantic import BaseModel
 from config.config import redis_client, OUR_ADDRESS
 from openai_api.chat import chat_with_openai, send_emoticon_tweet, send_thanks_tweet
 from openai_api.thanks_gen import generate_thanks_tweet
+from twitter.tweet import fetch_and_analyze_replies, get_is_fetch_and_analyze_active, set_is_fetch_and_analyze_active, \
+    fetch_and_analyze_stop_event
 from utils.emoticon import generate_balance_emoticon
 
 app = FastAPI()
@@ -21,8 +24,15 @@ transaction_stop_event = asyncio.Event()
 is_status_update_running = False
 is_transaction_listener_running = False
 
+
+
 class ChatRequest(BaseModel):
     message: str
+
+
+class FetchAndAnalyzeReplies(BaseModel):
+    user_id: str
+
 
 async def listen_for_transactions():
     """
@@ -136,14 +146,15 @@ async def stop_listen_transactions():
     return {"status": 200, "message": "Transaction listener stopped successfully."}
 
 
-@app.post("/chat")
-async def chat_with_ai(request: ChatRequest):
-    """
-    Chat endpoint to interact with OpenAI chat.
-    :param message: The message to send to the OpenAI chat API.
-    """
-    response = await chat_with_openai(request.message)
-    return {"status": 200, "msg": "success", "response": response}
+# Server Service with no chat, it just processes some schedule tasks, but if u want to chat, u can deploy it yourself
+# @app.post("/chat")
+# async def chat_with_ai(request: ChatRequest):
+#     """
+#     Chat endpoint to interact with OpenAI chat.
+#     :param message: The message to send to the OpenAI chat API.
+#     """
+#     response = await chat_with_openai(request.message)
+#     return {"status": 200, "msg": "success", "response": response}
 
 
 @app.post("/status_update/start")
@@ -171,3 +182,29 @@ async def stop_status_update_mode():
     is_status_update_running = False
     return {"status": 200, "message": "success"}
 
+
+@app.post("/fetch_and_analyze_replies")
+async def fetch_and_analyze_replies_mode(user_id: str):
+    global is_fetch_and_analyze_active
+    if os.getenv("is_transfer", "False").lower() == "true" and is_fetch_and_analyze_active:
+        await fetch_and_analyze_replies(user_id)
+        return {"status": 200, "message": "success"}
+    else:
+        return {"status": 200, "message": "success", "data": "Transfers are disabled by system settings."}
+
+
+@app.post("/start_fetch_and_analyze")
+async def start_fetch_and_analyze_mode():
+    if os.getenv("is_transfer", "False").lower() != "true":
+        return {"status": 403, "message": "Transfers are disabled by system environment setting."}
+
+    set_is_fetch_and_analyze_active(True)
+    fetch_and_analyze_stop_event.clear()  # Clear stop event to start task
+    return {"status": 200, "message": "Fetch and analyze mode started successfully."}
+
+
+@app.post("/stop_fetch_and_analyze")
+async def stop_fetch_and_analyze_mode():
+    set_is_fetch_and_analyze_active(False)
+    fetch_and_analyze_stop_event.set()  # Set stop event to pause task
+    return {"status": 200, "message": "Fetch and analyze mode stopped successfully."}

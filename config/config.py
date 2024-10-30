@@ -12,11 +12,11 @@ EMAIL = os.getenv('TWITTER_EMAIL', "")
 PASSWORD = os.getenv('TWITTER_PASSWORD', "")
 HTTP_PROXY = os.getenv('HTTP_PROXY', None)
 HTTPS_PROXY = os.getenv('HTTPS_PROXY', None)
-COOKIE_PATH = ""
+COOKIE_PATH = "my_cookies.json"
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', "")
 AI_TOKEN = os.getenv('AI_TOKEN', "")
 REDIS_URL = os.getenv('REDIS_URL', "")
-# 从环境变量读取 Redis 配置
+# load redis from localhost
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None)
@@ -24,8 +24,16 @@ REDIS_DB = int(os.getenv("REDIS_DB", 0))
 REDIS_TLS = os.getenv("REDIS_TLS", "false").lower() == "true"
 REDIS_SNI = os.getenv("REDIS_SNI", None)
 OUR_ADDRESS = os.getenv("OUR_ADDRESS", "")
-# 从环境变量中加载 cookies
+# load cookies
 COOKIES_JSON = os.getenv("COOKIES_JSON")
+
+# load price scope from localhost
+CKB_MIN = os.getenv("CKB_MIN", 61)
+CKB_MAX = os.getenv("CKB_MAX", 690)
+
+SEAL_MIN = os.getenv("SEAL_MIN", 1)
+SEAL_MAX = os.getenv("SEAL_MAX", 61)
+SEAL_XUDT_ARGS = os.getenv("SEAL_XUDT_ARGS", "")
 
 # set SSL 和 SNI
 ssl_context = None

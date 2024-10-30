@@ -1,29 +1,35 @@
 # client.py
 import asyncio
+import os
+
 import aiohttp
 
-# BASE_URL = "https://p01--ai-ckb-test-twitter--bcdjt922dnwt.code.run"  # Server URL
-BASE_URL = "http://127.0.0.1:8081"
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8081")
+
 
 async def start_listen_transactions():
     async with aiohttp.ClientSession() as session:
         async with session.post(f"{BASE_URL}/start_listen_transactions") as response:
             print(await response.json())
 
+
 async def stop_listen_transactions():
     async with aiohttp.ClientSession() as session:
         async with session.post(f"{BASE_URL}/stop_listen_transactions") as response:
             print(await response.json())
+
 
 async def start_status_update_mode():
     async with aiohttp.ClientSession() as session:
         async with session.post(f"{BASE_URL}/status_update/start") as response:
             print(await response.json())
 
+
 async def stop_status_update_mode():
     async with aiohttp.ClientSession() as session:
         async with session.post(f"{BASE_URL}/status_update/stop") as response:
             print(await response.json())
+
 
 async def chat_with_ai():
     print("Chat mode activated. Type your message or 'exit' to return to the main menu.")
@@ -39,6 +45,7 @@ async def chat_with_ai():
                     print("AI:", data.get("response", "Error in AI response"))
                 except aiohttp.ContentTypeError:
                     print("Failed to get a valid JSON response from the server.")
+
 
 async def main():
     while True:

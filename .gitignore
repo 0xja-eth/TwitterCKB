@@ -4,4 +4,5 @@ o_main.py
 prompt_engineering_version.txt
 build
 dist
+data
 
