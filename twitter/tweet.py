@@ -123,7 +123,7 @@ async def fetch_and_analyze_replies(user_id):
             print("\n" + "=" * 30)
             print(f"Failed to retrieve replies: {e}")
             print("=" * 30 + "\n")
-            return []
+            continue
 
 
 def get_is_fetch_and_analyze_active():

@@ -79,4 +79,4 @@ async def transfer_token(to_address: str, amount: int, xudt_args: str = SEAL_XUD
                 return None
 
 if __name__ == "__main__":
-    asyncio.run(transfer_token())
+    asyncio.run(transfer_token("12314134", 10))

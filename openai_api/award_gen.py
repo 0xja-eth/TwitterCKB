@@ -11,7 +11,7 @@ async def analyze_reply_for_transfer(comment: str):
     print(comment)
     # Define the prompt for AI analysis
     response = ai_client.chat.completions.create(
-        model="gpt-4o-mini-2024-07-18",
+        model="gpt-4o",
         messages=[
             {"role": "system",
              "content": f"""
