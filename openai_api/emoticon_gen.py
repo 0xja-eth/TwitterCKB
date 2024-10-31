@@ -28,7 +28,7 @@ async def generate_emoticon_tweet():
             
             {
                 "tweet_prefix": "Feeling like this now!",
-                "tweet_content": "So happy today! 🦭🌊"
+                "tweet_content": "🎃So happy today! 🦭🌊"
             }
             """
             },

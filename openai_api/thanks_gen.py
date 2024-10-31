@@ -27,12 +27,12 @@ async def generate_thanks_tweet():
             
             {
                 "tweet_prefix": "Huge thanks for the support!",
-                "tweet_content": "Your kindness fuels my fins! 🦭💧"
+                "tweet_content": "🎃🦭Your kindness fuels my fins! 🦭💧"
             }
             
             {
                 "tweet_prefix": "Feeling extra grateful!",
-                "tweet_content": "Thanks for the fish fund! 🐟💙"
+                "tweet_content": "🎃🦭Thanks for the fish fund! 🐟💙"
             }
 
             """
