@@ -109,16 +109,19 @@ async def fetch_and_analyze_replies(user_id):
 
                             # transfer the money
                             if to_address and amount and currency_type:
-                                if currency_type == "CKB":
-                                    if int(CKB_MIN) <= int(amount) <= int(CKB_MAX):
-                                        transfer_result = await transfer_ckb(to_address, int(amount))
-                                elif currency_type == "Seal":
-                                    if int(SEAL_MIN) <= int(amount) <= int(SEAL_MAX):
-                                        transfer_result = await transfer_token(to_address, int(amount), SEAL_XUDT_ARGS)
-                                else:
-                                    print("Unrecognized currency type in response:", currency_type)
-                                    continue
-
+                                try:
+                                    amount = int(amount)
+                                    if currency_type == "CKB":
+                                        if CKB_MIN <= amount <= CKB_MAX:
+                                            transfer_result = await transfer_ckb(to_address, amount)
+                                    elif currency_type == "Seal":
+                                        if SEAL_MIN <= amount <= SEAL_MAX:
+                                            transfer_result = await transfer_token(to_address, amount, SEAL_XUDT_ARGS)
+                                    else:
+                                        print("Unrecognized currency type in response:", currency_type)
+                                        continue
+                                except Exception as e:
+                                    print(f"Transfer error:{e}")
                                 print("Transfer Result:", transfer_result)
                         await asyncio.sleep(30)
                         now_count += 1
