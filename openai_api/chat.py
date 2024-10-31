@@ -66,6 +66,8 @@ async def send_emoticon_tweet():
 
 
 async def send_thanks_tweet(user_address: str, value):
+    value = abs(value)
+
     # Generate tweet data (prefix and content) for thank-you message
     tweet_data = await generate_thanks_tweet()
     if not tweet_data:

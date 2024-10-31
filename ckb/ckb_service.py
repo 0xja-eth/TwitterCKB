@@ -78,3 +78,5 @@ async def transfer_token(to_address: str, amount: int, xudt_args: str = SEAL_XUD
                 print(f"Failed to transfer Token, status code: {response.status}")
                 return None
 
+if __name__ == "__main__":
+    asyncio.run(transfer_token())
