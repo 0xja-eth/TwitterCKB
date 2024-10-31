@@ -32,7 +32,7 @@ CKB_MIN = os.getenv("CKB_MIN", 61)
 CKB_MAX = os.getenv("CKB_MAX", 690)
 
 SEAL_MIN = os.getenv("SEAL_MIN", 1)
-SEAL_MAX = os.getenv("SEAL_MAX", 61)
+SEAL_MAX = os.getenv("SEAL_MAX", 10)
 SEAL_XUDT_ARGS = os.getenv("SEAL_XUDT_ARGS", "")
 
 # set SSL 和 SNI
