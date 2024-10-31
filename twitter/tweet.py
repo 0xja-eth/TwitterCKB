@@ -108,10 +108,10 @@ async def fetch_and_analyze_replies(user_id):
                             if to_address and amount and currency_type:
                                 if currency_type == "CKB":
                                     if CKB_MIN <= int(amount) <= CKB_MAX:
-                                        transfer_result = await transfer_ckb(to_address, amount)
+                                        transfer_result = await transfer_ckb(to_address, int(amount))
                                 elif currency_type == "Seal":
                                     if SEAL_MIN <= int(amount) <= SEAL_MAX:
-                                        transfer_result = await transfer_token(to_address, amount, SEAL_XUDT_ARGS)
+                                        transfer_result = await transfer_token(to_address, int(amount), SEAL_XUDT_ARGS)
                                 else:
                                     print("Unrecognized currency type in response:", currency_type)
                                     continue
