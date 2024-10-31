@@ -46,6 +46,21 @@ async def chat_with_ai():
                 except aiohttp.ContentTypeError:
                     print("Failed to get a valid JSON response from the server.")
 
+async def start_fetch_and_analyze_mode():
+    async with aiohttp.ClientSession() as session:
+        async with session.post(f"{BASE_URL}/start_fetch_and_analyze") as response:
+            print(await response.json())
+async def stop_fetch_and_analyze_mode():
+    async with aiohttp.ClientSession() as session:
+        async with session.post(f"{BASE_URL}/stop_fetch_and_analyze") as response:
+            print(await response.json())
+
+async def fetch_and_analyze_replies():
+    user_id = input("Please enter the twitter user_id that you would like to analyze:")
+    async with aiohttp.ClientSession() as session:
+        payload = {"user_id": user_id}
+        async with session.post(f"{BASE_URL}/fetch_and_analyze_replies", json=payload) as response:
+            print(await response.json())
 
 async def main():
     while True:
@@ -55,8 +70,10 @@ async def main():
         print("3. Start Status Update Mode")
         print("4. Stop Status Update Mode")
         print("5. Chat with AI")
-        print("6. Exit")
-
+        print("6. Start_fetch_and_analyze_mode")
+        print("7. Stop_fetch_and_analyze_mode")
+        print("8. Fetch_and_analyze_replies")
+        print("9. Exiting client.")
         choice = input("Enter the number of your choice: ")
 
         if choice == '1':
@@ -70,6 +87,12 @@ async def main():
         elif choice == '5':
             await chat_with_ai()
         elif choice == '6':
+            await start_fetch_and_analyze_mode()
+        elif choice == '7':
+            await stop_fetch_and_analyze_mode()
+        elif choice == '8':
+            await fetch_and_analyze_replies()
+        elif choice == '9':
             print("Exiting client.")
             break
         else:

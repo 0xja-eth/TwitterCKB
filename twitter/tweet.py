@@ -44,17 +44,20 @@ async def fetch_and_analyze_replies(user_id):
         if os.getenv("IS_TRANSFER", "False").lower() != "true" or not is_fetch_and_analyze_active:
             print("Transfer environment setting or fetch mode is disabled. Pausing task.")
             await asyncio.sleep(15)  # Wait before rechecking
-            continue
+            return
 
         try:
             tweets = await client.get_user_tweets(user_id, "Tweets")
+            await asyncio.sleep(1)
             for tweet in tweets:
                 tweet_id = tweet.id
                 tweet = await client.get_tweet_by_id(tweet_id)
+                await asyncio.sleep(1)
                 replies_count = tweet.reply_count
                 now_count = 0
 
                 last_processed_time = await redis_client.get(f"last_processed_time:{tweet_id}")
+                await asyncio.sleep(1)
                 if not last_processed_time:
                     last_processed_time = initial_timestamp
                     await redis_client.set(f"last_processed_time:{tweet_id}", last_processed_time)
@@ -65,11 +68,14 @@ async def fetch_and_analyze_replies(user_id):
 
                 while replies:
                     for reply in replies:
+                        if not is_fetch_and_analyze_active:
+                            return
                         reply_timestamp = reply.created_at_datetime.timestamp()
 
                         # Skip replies processed previously
                         if reply_timestamp <= float(last_processed_time):
                             now_count += 1
+                            print(now_count)
                             continue
 
                         print("Reply:", reply.full_text)
@@ -99,13 +105,20 @@ async def fetch_and_analyze_replies(user_id):
                         # Update last processed time
                         last_processed_time = reply_timestamp
                         await redis_client.set(f"last_processed_time:{tweet_id}", last_processed_time)
-
+                        await asyncio.sleep(1)
                         now_count += 1
-
+                    if not is_fetch_and_analyze_active:
+                        return
                     if replies.next and now_count <= replies_count:
-                        replies = await replies.next()
+                        try:
+                            replies = await replies.next()
+                            await asyncio.sleep(20)
+                        except Exception as e:
+                            print(f"replies.next() error: {e} ")
+                            break
                     else:
                         break  # if no more, break it
+            await asyncio.sleep(60)
         except Exception as e:
             print("\n" + "=" * 30)
             print(f"Failed to retrieve replies: {e}")

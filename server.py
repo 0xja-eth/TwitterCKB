@@ -187,7 +187,7 @@ async def stop_status_update_mode():
 async def fetch_and_analyze_replies_mode(request: FetchAndAnalyzeRepliesRequest, background_tasks: BackgroundTasks):
     is_fetch_and_analyze_active = get_is_fetch_and_analyze_active()
     if os.getenv("IS_TRANSFER", "False").lower() == "true" and is_fetch_and_analyze_active:
-        background_tasks.add_task(fetch_and_analyze_replies,request.user_id)
+        background_tasks.add_task(fetch_and_analyze_replies, request.user_id)
         return {"status": 200, "message": "success"}
     else:
         return {"status": 403, "message": "success", "data": "Transfers are disabled by system settings."}
