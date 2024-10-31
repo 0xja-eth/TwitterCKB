@@ -75,7 +75,7 @@ async def fetch_and_analyze_replies(user_id):
                         # Skip replies processed previously
                         if reply_timestamp <= float(last_processed_time):
                             now_count += 1
-                            print(now_count)
+                            # print(now_count)
                             continue
 
                         print("Reply:", reply.full_text)
