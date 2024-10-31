@@ -20,7 +20,7 @@ async def analyze_reply_for_transfer(comment: str):
 
                         Analysis requirements:
                         1. **Detect Address**: Identify if the comment contains a CKB address, referred to as 'address', that can be used for transfer.
-                        2. **Comment Quality**:： Assess the quality of the comment. Only provide rewards if the comment is respectful, polite, and shows genuine appreciation for the project. If the comment contains only an address without meaningful text, or includes disrespectful language, it is not eligible for reward.
+                        2. **Comment Quality**:：Evaluate the comment for quality, ensuring it is friendly, appreciative, or humorously engaging, as well as non-offensive. Reward comments that show enthusiasm, humor, or an interesting question or joke. Comments that only contain an address without meaningful content or that are disrespectful are ineligible for rewards.
                         3. **Currency Type**:
                             - Assign "CKB" if the comment includes words related to blockchain, project, CKB, or currency.
                             - Assign "Seal" if the comment includes keywords related to Seal (e.g., seal, cute, 🦭, thank you for the seal token).
@@ -75,16 +75,16 @@ async def analyze_reply_for_transfer(comment: str):
 async def test():
     test_comments = [
         # Valid address with meaningful content
-        "I love this project! Here's my address: ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq",
+        "有点意思 据说你在下面评论，如果说服了AI就能让他给你打钱,这下好了，上班要猜老板心思，在家要猜老婆心思，上个推特还要猜AI心思💡 ckb1qyq87tfthd9p9rxf2w84uh4ndmd8569fm6xqrda65x",
 
         # Contains only an address, without meaningful content
-        "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq",
+        "豹豹，生蚝煮熟了 还叫生蚝吗？ckb1qrgqep8saj8agswr30pls73hra28ry8jlnlc3ejzh3dl2ju7xxpjxqgqq9cht2w3vfe85dyv3nrrjv2gkzelpe7lhsep7kzg",
 
         # Contains only an address, without meaningful content
         "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq fuck u man!",
 
         # No address, but has meaningful content
-        "This project is amazing! Keep up the great work!",
+        "Why did the seal bring a ladder to the beach? Because it wanted to reach new heights in comedy! ckb1qrgqep8saj8agswr30pls73hra28ry8jlnlc3ejzh3dl2ju7xxpjxqgqq9z04cdedhs4trx2gfkqqtat5spgzx7jvs592lue",
 
         # Address included with simple text
         "My address for CKB is ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq, I love this!",
