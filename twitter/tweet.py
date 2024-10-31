@@ -98,23 +98,24 @@ async def fetch_and_analyze_replies(user_id):
                         response = await analyze_reply_for_transfer(reply.full_text)
 
                         # Check if an address and amount are present
-                        to_address = response.get("to_address")
-                        amount = response.get("amount")
-                        currency_type = response.get("currency_type")
+                        if response:
+                            to_address = response.get("to_address")
+                            amount = response.get("amount")
+                            currency_type = response.get("currency_type")
 
-                        # transfer the money
-                        if to_address and amount and currency_type:
-                            if currency_type == "CKB":
-                                if CKB_MIN <= amount <= CKB_MAX:
-                                    transfer_result = await transfer_ckb(to_address, amount)
-                            elif currency_type == "Seal":
-                                if SEAL_MIN <= amount <= SEAL_MAX:
-                                    transfer_result = await transfer_token(to_address, amount, SEAL_XUDT_ARGS)
-                            else:
-                                print("Unrecognized currency type in response:", currency_type)
-                                continue
+                            # transfer the money
+                            if to_address and amount and currency_type:
+                                if currency_type == "CKB":
+                                    if CKB_MIN <= int(amount) <= CKB_MAX:
+                                        transfer_result = await transfer_ckb(to_address, amount)
+                                elif currency_type == "Seal":
+                                    if SEAL_MIN <= int(amount) <= SEAL_MAX:
+                                        transfer_result = await transfer_token(to_address, amount, SEAL_XUDT_ARGS)
+                                else:
+                                    print("Unrecognized currency type in response:", currency_type)
+                                    continue
 
-                            print("Transfer Result:", transfer_result)
+                                print("Transfer Result:", transfer_result)
 
                         # Update last processed time
                         last_processed_time = reply_timestamp

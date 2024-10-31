@@ -28,7 +28,7 @@ async def analyze_reply_for_transfer(comment: str):
                         - {CKB_MIN} and {CKB_MAX} CKB for "CKB" currency type.
                         - {SEAL_MIN} and {SEAL_MAX} Seal tokens for "Seal" currency type.
                         Output format:
-                        Return a JSON object with two fields:
+                        Return a JSON object with two fields, Use exact JSON format without additional commentary or explanatory text:
                         - "to_address": The address for the transfer. If no address is found, set this to null.
                         - "amount": The reward amount. Set this to null if the comment does not qualify or if no address is found.
                         - `currency_type`: Either "CKB" or "Seal" based on the comment context.
