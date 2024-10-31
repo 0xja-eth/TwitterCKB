@@ -208,3 +208,4 @@ async def stop_fetch_and_analyze_mode():
     set_is_fetch_and_analyze_active(False)
     fetch_and_analyze_stop_event.set()  # Set stop event to pause task
     return {"status": 200, "message": "Fetch and analyze mode stopped successfully."}
+

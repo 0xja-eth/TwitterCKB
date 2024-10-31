@@ -1,6 +1,7 @@
 # openai_api/award_gen.py
 import asyncio
 import json
+import re
 
 from config.config import CKB_MIN, CKB_MAX, SEAL_MIN, SEAL_MAX
 from openai_api import ai_client
@@ -35,12 +36,12 @@ async def analyze_reply_for_transfer(comment: str):
                         Example outputs:
                         If the comment includes a valid address and qualifies:
                         {{
-                            "to_address": "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50x...",
+                            "to_address": "ckb1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50x...",
                             "amount": 123,
                             "currency_type": "CKB"
                         }}
                         {{
-                            "to_address": "ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50x...",
+                            "to_address": "ckb1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50x...",
                             "amount": 123,
                             "currency_type": "Seal"
                         }}
@@ -60,8 +61,10 @@ async def analyze_reply_for_transfer(comment: str):
     print(content)
     # Parse the response content as JSON
     try:
-        analysis_result = json.loads(content)
-        print(analysis_result)
+        # Remove any ```json or ``` formatting tags from content
+        cleaned_content = re.sub(r"```(?:json)?", "", content).strip()
+        analysis_result = json.loads(cleaned_content)
+        # print(analysis_result)
         return analysis_result
     except json.JSONDecodeError as e:
         print("Failed to parse JSON:", e)

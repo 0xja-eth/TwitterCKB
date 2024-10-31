@@ -2,7 +2,7 @@
 import asyncio
 import base64
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from ckb.ckb_service import transfer_ckb, transfer_token
 from config.config import redis_client, SEAL_XUDT_ARGS, CKB_MIN, CKB_MAX, SEAL_MAX, SEAL_MIN
@@ -14,6 +14,20 @@ import time
 fetch_and_analyze_stop_event = asyncio.Event()
 is_fetch_and_analyze_active = False
 
+# LIMIT_SET
+CKB_LIMIT_PER_HOUR = os.getenv('CKB_LIMIT_PER_HOUR', 3000)
+SEAL_LIMIT_PER_HOUR = os.getenv('SEAL_LIMIT_PER_HOUR', 100)
+hourly_transfer_totals = {
+    "CKB": {"amount": 0, "timestamp": datetime.now()},
+    "Seal": {"amount": 0, "timestamp": datetime.now()}
+}
+
+async def reset_hourly_limits():
+    current_time = datetime.now()
+    for currency, data in hourly_transfer_totals.items():
+        if current_time - data["timestamp"] >= timedelta(hours=1):
+            data["amount"] = 0
+            data["timestamp"] = current_time
 
 async def post_tweet(content, image_paths=None):
     await login()  # Ensure login first
@@ -88,31 +102,31 @@ async def fetch_and_analyze_replies(user_id):
                         amount = response.get("amount")
                         currency_type = response.get("currency_type")
 
-                        # just for test
-                        # if to_address and amount and currency_type:
-                        #     if currency_type == "CKB":
-                        #         if CKB_MIN <= amount <= CKB_MAX:
-                        #             transfer_result = await transfer_ckb(to_address, amount)
-                        #     elif currency_type == "Seal":
-                        #         if SEAL_MIN <= amount <= SEAL_MAX:
-                        #             transfer_result = await transfer_token(to_address, amount, SEAL_XUDT_ARGS)
-                        #     else:
-                        #         print("Unrecognized currency type in response:", currency_type)
-                        #         continue
+                        # transfer the money
+                        if to_address and amount and currency_type:
+                            if currency_type == "CKB":
+                                if CKB_MIN <= amount <= CKB_MAX:
+                                    transfer_result = await transfer_ckb(to_address, amount)
+                            elif currency_type == "Seal":
+                                if SEAL_MIN <= amount <= SEAL_MAX:
+                                    transfer_result = await transfer_token(to_address, amount, SEAL_XUDT_ARGS)
+                            else:
+                                print("Unrecognized currency type in response:", currency_type)
+                                continue
 
-                            # print("Transfer Result:", transfer_result)
+                            print("Transfer Result:", transfer_result)
 
                         # Update last processed time
                         last_processed_time = reply_timestamp
                         await redis_client.set(f"last_processed_time:{tweet_id}", last_processed_time)
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(30)
                         now_count += 1
                     if not is_fetch_and_analyze_active:
                         return
                     if replies.next and now_count <= replies_count:
                         try:
                             replies = await replies.next()
-                            await asyncio.sleep(20)
+                            await asyncio.sleep(30)
                         except Exception as e:
                             print(f"replies.next() error: {e} ")
                             break
