@@ -76,8 +76,11 @@ async def fetch_and_analyze_replies(user_id):
                 if not last_processed_time:
                     last_processed_time = initial_timestamp
                     await redis_client.set(f"last_processed_time:{tweet_id}", last_processed_time)
+                    # continue
                 else:
                     last_processed_time = float(last_processed_time)
+                    # await redis_client.set(f"last_processed_time:{tweet_id}", initial_timestamp)
+                    # continue
 
                 replies = tweet.replies
 
@@ -107,10 +110,10 @@ async def fetch_and_analyze_replies(user_id):
                             # transfer the money
                             if to_address and amount and currency_type:
                                 if currency_type == "CKB":
-                                    if CKB_MIN <= int(amount) <= CKB_MAX:
+                                    if int(CKB_MIN) <= int(amount) <= int(CKB_MAX):
                                         transfer_result = await transfer_ckb(to_address, int(amount))
                                 elif currency_type == "Seal":
-                                    if SEAL_MIN <= int(amount) <= SEAL_MAX:
+                                    if int(SEAL_MIN) <= int(amount) <= int(SEAL_MAX):
                                         transfer_result = await transfer_token(to_address, int(amount), SEAL_XUDT_ARGS)
                                 else:
                                     print("Unrecognized currency type in response:", currency_type)
@@ -121,7 +124,7 @@ async def fetch_and_analyze_replies(user_id):
                         now_count += 1
                     if not is_fetch_and_analyze_active:
                         return
-                    if replies.next and now_count <= replies_count:
+                    if replies.next and int(now_count) <= int(replies_count):
                         try:
                             replies = await replies.next()
                             await asyncio.sleep(120)
