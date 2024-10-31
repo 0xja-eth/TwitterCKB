@@ -2,6 +2,7 @@
 import asyncio
 import base64
 import os
+import sys
 from datetime import datetime, timedelta
 
 from ckb.ckb_service import transfer_ckb, transfer_token
@@ -116,10 +117,6 @@ async def fetch_and_analyze_replies(user_id):
                                     continue
 
                                 print("Transfer Result:", transfer_result)
-
-                        # Update last processed time
-                        last_processed_time = reply_timestamp
-                        await redis_client.set(f"last_processed_time:{tweet_id}", last_processed_time)
                         await asyncio.sleep(30)
                         now_count += 1
                     if not is_fetch_and_analyze_active:
@@ -127,14 +124,18 @@ async def fetch_and_analyze_replies(user_id):
                     if replies.next and now_count <= replies_count:
                         try:
                             replies = await replies.next()
-                            await asyncio.sleep(30)
+                            await asyncio.sleep(120)
                         except Exception as e:
                             print(f"replies.next() error: {e} ")
                             break
                     else:
                         break  # if no more, break it
+                # Update last processed time
+                last_processed_time = datetime.now().timestamp()
+                await redis_client.set(f"last_processed_time:{tweet_id}", last_processed_time)
             await asyncio.sleep(60)
         except Exception as e:
+            await asyncio.sleep(120)
             print("\n" + "=" * 30)
             print(f"Failed to retrieve replies: {e}")
             print("=" * 30 + "\n")
@@ -148,3 +149,6 @@ def get_is_fetch_and_analyze_active():
 def set_is_fetch_and_analyze_active(is_fetch):
     global is_fetch_and_analyze_active
     is_fetch_and_analyze_active = is_fetch
+
+if __name__ == "__main__":
+    asyncio.run(fetch_and_analyze_replies("1851132257144356867"))
