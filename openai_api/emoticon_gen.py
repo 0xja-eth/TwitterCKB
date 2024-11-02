@@ -1,5 +1,6 @@
 # openai_api/emoticon_gen.py
 import json
+import re
 
 from openai_api import ai_client
 
@@ -19,27 +20,44 @@ async def generate_emoticon_tweet():
                 🦭.ai is passionate about using blockchain technology to benefit seals around the world
             
             Please output a JSON object with two fields:
-            1. "tweet_prefix": The prefix of the tweet.
-            2. "tweet_content": The main content of the tweet, which should be **no more than 20 characters** long.
+            1. "tweet_prefix": The prefix of the tweet, a creative introduction (5-20 words) describing 🦭.ai's current mood or vibe.
+            2. "tweet_content": The main content of the tweet, A playful and expressive update (10-40 characters) on 🦭.ai’s mood, using emoticons to add fun and personality.
             
             Remember, only output the JSON object, nothing else.
             
-            Here is an example:
+            Here are a few example:
             
             {
-                "tweet_prefix": "Feeling like this now!",
-                "tweet_content": "🎃So happy today! 🦭🌊"
+                "tweet_prefix": "Drifting through the day, feeling light and free as a fish!",
+                "tweet_content": "🎃Floating in a sea of calm and joy 💧🦭🌊"
             }
+            
+            {
+            "tweet_prefix": "Today’s waves feel smooth and the ocean’s calling for a happy seal dance!",
+            "tweet_content": "🐟💃 Dancing like no one’s watching 🦭🌊💦"
+            }
+            
+            {
+            "tweet_prefix": "The ocean is sparkling, and my fins are ready for a joyful swim!",
+            "tweet_content": "💙🦭 Full of energy and splashing around 🌊🐠"
+            }
+            
+            {
+            "tweet_prefix": "Happy, peace and love!"
+            "tweet_content": "🌊🦭 Feeling totally at peace with the tides 💙🐟"
+            }
+            
             """
             },
-            {"role": "user", "content": "Please generate a cute tweet in the specified format and content"}
+            {"role": "user", "content": "Please generate a fun and expressive tweet describing 🦭.ai's current mood as specified."}
         ]
     )
     content = response.choices[0].message.content
 
     # Parse the content as JSON
     try:
-        tweet_data = json.loads(content)
+        cleaned_content = re.sub(r"```(?:json)?", "", content).strip()
+        tweet_data = json.loads(cleaned_content)
         return tweet_data
     except json.JSONDecodeError as e:
         print("Failed to parse JSON:", e)

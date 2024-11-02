@@ -76,11 +76,8 @@ async def fetch_and_analyze_replies(user_id):
                 if not last_processed_time:
                     last_processed_time = initial_timestamp
                     await redis_client.set(f"last_processed_time:{tweet_id}", last_processed_time)
-                    # continue
                 else:
                     last_processed_time = float(last_processed_time)
-                    # await redis_client.set(f"last_processed_time:{tweet_id}", initial_timestamp)
-                    # continue
 
                 replies = tweet.replies
 
@@ -116,6 +113,7 @@ async def fetch_and_analyze_replies(user_id):
                             to_address = response.get("to_address")
                             amount = response.get("amount")
                             currency_type = response.get("currency_type")
+                            reply_content = response.get("reply_content")
 
                             # transfer the money
                             if to_address and amount and currency_type:
@@ -124,13 +122,13 @@ async def fetch_and_analyze_replies(user_id):
                                     if currency_type == "CKB":
                                         if CKB_MIN <= amount <= CKB_MAX:
                                             transfer_result = await transfer_ckb(to_address, amount)
-                                            if transfer_result is not None:
-                                                await reply.reply("🦭")
+                                            if transfer_result is not None and reply_content is not None:
+                                                await reply.reply(reply_content)
                                     elif currency_type == "Seal":
                                         if SEAL_MIN <= amount <= SEAL_MAX:
                                             transfer_result = await transfer_token(to_address, amount, SEAL_XUDT_ARGS)
-                                            if transfer_result is not None:
-                                                await reply.reply("🦭")
+                                            if transfer_result is not None and reply_content is not None:
+                                                await reply.reply(reply_content)
                                     else:
                                         print("Unrecognized currency type in response:", currency_type)
                                         continue
@@ -138,6 +136,7 @@ async def fetch_and_analyze_replies(user_id):
                                     await redis_client.set(user_claim_key, "claimed")
                                 except Exception as e:
                                     print(f"Transfer error:{e}")
+
                                 print("Transfer Result:", transfer_result)
                         await asyncio.sleep(30)
                         now_count += 1

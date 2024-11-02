@@ -20,18 +20,18 @@ async def generate_thanks_tweet():
                 🦭.ai is passionate about using blockchain technology to benefit seals around the world
               
             Please output a JSON object with two fields:
-            1. "tweet_prefix": The prefix of the tweet.
-            2. "tweet_content": The main content of the tweet, which should be **no more than 30 characters** long.
+            1. "tweet_prefix": The beginning of the tweet, a warm thanks that’s sincere and fun, between 10 and 20 words.
+            2. "tweet_content": The main content of the tweet, colorful, playful, and between 20 and 40 characters.
             
-            Here is an example:
+            Here are a few examples:
             
             {
-                "tweet_prefix": "Huge thanks for the support!",
+                "tweet_prefix": "Sending a big splash of thanks to my wonderful friends!",
                 "tweet_content": "🎃🦭Your kindness fuels my fins! 🦭💧"
             }
             
             {
-                "tweet_prefix": "Feeling extra grateful!",
+                "tweet_prefix": "Feeling especially fin-tastic today—thank you for your support!",
                 "tweet_content": "🎃🦭Thanks for the fish fund! 🐟💙"
             }
 

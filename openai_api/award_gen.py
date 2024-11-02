@@ -31,26 +31,30 @@ async def analyze_reply_for_transfer(comment: str):
                         Return a JSON object with two fields, Use exact JSON format without additional commentary or explanatory text:
                         - "to_address": The address for the transfer. If no address is found, set this to null.
                         - "amount": The reward amount. Set this to null if the comment does not qualify or if no address is found.
-                        - `currency_type`: Either "CKB" or "Seal" based on the comment context.
+                        - "currency_type": Either "CKB" or "Seal" based on the comment context.
+                        - "reply_content": A short, positive response (up to 10 words) to engage the user if they qualify for a reward.
                         
                         Example outputs:
                         If the comment includes a valid address and qualifies:
                         {{
                             "to_address": "ckb1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50x...",
                             "amount": 123,
-                            "currency_type": "CKB"
+                            "currency_type": "CKB",
+                            "reply_content": "You're amazing! Keep it up!🌊🦭"
                         }}
                         {{
                             "to_address": "ckb1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50x...",
                             "amount": 123,
-                            "currency_type": "Seal"
+                            "currency_type": "Seal",
+                            "reply_content": "Oh! it is so perfect! 🦭💦"
                         }}
                         
                         If the comment does not include an address or is of low quality:
                         {{
                             "to_address": null,
                             "amount": null,
-                            "currency_type": null
+                            "currency_type": null,
+                            "reply_content": "Thank you for your comment!",
                         }}
                         """
              },
