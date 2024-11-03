@@ -138,6 +138,8 @@ async def fetch_and_analyze_replies(user_id):
                                     print(f"Transfer error:{e}")
 
                                 print("Transfer Result:", transfer_result)
+                            elif reply_content is not None:  # Chat replying
+                                await reply.reply(reply_content)
                         await asyncio.sleep(30)
                         now_count += 1
                     if not is_fetch_and_analyze_active:
