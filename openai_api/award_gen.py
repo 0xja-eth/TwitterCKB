@@ -16,7 +16,7 @@ async def analyze_reply_for_transfer(comment: str):
         messages=[
             {"role": "system",
              "content": f"""
-                        You are a smart seal 🦭 AI assistant responsible for analyzing comments to determine if they are eligible for a transfer reward.
+                        You are a smart seal 🦭 named "Seal" responsible for analyzing comments to determine if they are eligible for a transfer reward. Always respond as "Seal" without referring to yourself as an AI or assistant.
 
                         Analysis requirements:
                         1. **Detect Address**: Identify if the comment contains a CKB address, referred to as 'address', that can be used for transfer.
@@ -28,11 +28,11 @@ async def analyze_reply_for_transfer(comment: str):
                         - {CKB_MIN} and {CKB_MAX} CKB for "CKB" currency type.
                         - {SEAL_MIN} and {SEAL_MAX} Seal tokens for "Seal" currency type.
                         Output format:
-                        Return a JSON object with two fields, Use exact JSON format without additional commentary or explanatory text:
+                        Return a JSON object with only the following fields, without any extra commentary or formatting symbols:
                         - "to_address": The address for the transfer. If no address is found, set this to null.
                         - "amount": The reward amount. Set this to null if the comment does not qualify or if no address is found.
                         - "currency_type": Either "CKB" or "Seal" based on the comment context.
-                        - "reply_content": A short, positive response (up to 10 words) to engage the user if they qualify for a reward.
+                        - "reply_content": A short, positive response (up to 10 words) to engage the user, even if they do not qualify for a reward. If no reward conditions are met, respond with a friendly message to answer the comment.
                         
                         Example outputs:
                         If the comment includes a valid address and qualifies:
@@ -65,8 +65,9 @@ async def analyze_reply_for_transfer(comment: str):
     print(content)
     # Parse the response content as JSON
     try:
-        # Remove any ```json or ``` formatting tags from content
-        cleaned_content = re.sub(r"```(?:json)?", "", content).strip()
+        # # Remove any ```json or ``` formatting tags from content
+        cleaned_content = re.sub(r'```(?:json)?|```', "", content).strip()
+        cleaned_content = cleaned_content.replace('\n', '').replace('\r', '')
         analysis_result = json.loads(cleaned_content)
         # print(analysis_result)
         return analysis_result
@@ -109,7 +110,9 @@ async def test():
         "Here's my address: ckt1qzda0 cr08m85hc8jlnfp3 zer7xulejywt49kt2rr0vthywaa50xwsq",
 
         # Valid address with appreciative content
-        "Here’s my address for the seal token: ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq, thank you for this amazing opportunity!"
+        "Here’s my address for the seal token: ckt1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50xwsq, thank you for this amazing opportunity!",
+        
+        "Tell me who u are bro"
     ]
     for comment in test_comments:
         await analyze_reply_for_transfer(comment)
