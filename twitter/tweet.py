@@ -93,16 +93,6 @@ async def fetch_and_analyze_replies(user_id):
                             # print(now_count)
                             continue
 
-                        # Get user_id from the reply
-                        to_user_id = reply.user.id
-                        user_claim_key = f"user_claimed:{to_user_id}"
-
-                        # Check if user has already claimed the reward
-                        has_claimed = await redis_client.get(user_claim_key)
-                        if has_claimed:
-                            print(f"User {to_user_id} has already claimed the reward.")
-                            continue
-
                         print("Reply:", reply.full_text)
 
                         # analyze and process comment
@@ -119,6 +109,15 @@ async def fetch_and_analyze_replies(user_id):
                             if to_address and amount and currency_type:
                                 try:
                                     amount = int(amount)
+                                    # Get user_id from the reply
+                                    to_user_id = reply.user.id
+                                    user_claim_key = f"user_claimed:{to_user_id}"
+
+                                    # Check if user has already claimed the reward
+                                    has_claimed = await redis_client.get(user_claim_key)
+                                    if has_claimed:
+                                        print(f"User {to_user_id} has already claimed the reward.")
+                                        continue
                                     if currency_type == "CKB":
                                         if CKB_MIN <= amount <= CKB_MAX:
                                             transfer_result = await transfer_ckb(to_address, amount)
@@ -136,7 +135,6 @@ async def fetch_and_analyze_replies(user_id):
                                     await redis_client.set(user_claim_key, "claimed")
                                 except Exception as e:
                                     print(f"Transfer error:{e}")
-
                                 print("Transfer Result:", transfer_result)
                             elif reply_content is not None:  # Chat replying
                                 await reply.reply(reply_content)
