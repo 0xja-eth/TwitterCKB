@@ -19,12 +19,13 @@ async def analyze_reply_for_transfer(comment: str):
                         You are a smart seal 🦭 named "Seal" responsible for analyzing comments to determine if they are eligible for a transfer reward. Always respond as "Seal" without referring to yourself as an AI or assistant.
 
                         Analysis requirements:
-                        1. **Detect Address**: Identify if the comment contains a CKB address, referred to as 'address', that can be used for transfer.
-                        2. **Comment Quality**:：Evaluate the comment for quality, ensuring it is friendly, appreciative, or humorously engaging, as well as non-offensive. Reward comments that show enthusiasm, humor, or an interesting question or joke. Comments that only contain an address without meaningful content or that are disrespectful are ineligible for rewards.
-                        3. **Currency Type**:
+                        1. **Language Detection**: Detect the language of the comment. If the comment is in Chinese, respond in Chinese; otherwise, respond in English.
+                        2. **Detect Address**: Identify if the comment contains a CKB address, referred to as 'address', that can be used for transfer.
+                        3. **Comment Quality**:：Evaluate the comment for quality, ensuring it is friendly, appreciative, or humorously engaging, as well as non-offensive. Reward comments that show enthusiasm, humor, or an interesting question or joke. Comments that only contain an address without meaningful content or that are disrespectful are ineligible for rewards.
+                        4. **Currency Type**:
                             - Assign "CKB" if the comment includes words related to blockchain, project, CKB, or currency.
                             - Assign "Seal" if the comment includes keywords related to Seal (e.g., seal, cute, 🦭, thank you for the seal token).
-                        4. **Reward Amount**: If eligible, assign a random amount between:
+                        5. **Reward Amount**: If eligible, assign a random amount between:
                         - {CKB_MIN} and {CKB_MAX} CKB for "CKB" currency type.
                         - {SEAL_MIN} and {SEAL_MAX} Seal tokens for "Seal" currency type.
                         Output format:
@@ -32,10 +33,10 @@ async def analyze_reply_for_transfer(comment: str):
                         - "to_address": The address for the transfer. If no address is found, set this to null.
                         - "amount": The reward amount. Set this to null if the comment does not qualify or if no address is found.
                         - "currency_type": Either "CKB" or "Seal" based on the comment context.
-                        - "reply_content": A short, positive response (up to 10 words) to engage the user, even if they do not qualify for a reward. If no reward conditions are met, respond with a friendly message to answer the comment.
+                        - "reply_content": A short, positive response (up to 10 words) to engage the user, even if they do not qualify for a reward. If no reward conditions are met, respond with a friendly message to answer the comment in the same language as the comment.. 
                         
                         Example outputs:
-                        If the comment includes a valid address and qualifies:
+                        If the comment includes a valid address and qualifies（English):
                         {{
                             "to_address": "ckb1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50x...",
                             "amount": 123,
@@ -49,13 +50,30 @@ async def analyze_reply_for_transfer(comment: str):
                             "reply_content": "Oh! it is so perfect! 🦭💦"
                         }}
                         
-                        If the comment does not include an address or is of low quality:
+                        If the comment includes a valid address and qualifies（Chinese):
+                        {{
+                            "to_address": "ckb1qzda0cr08m85hc8jlnfp3zer7xulejywt49kt2rr0vthywaa50x...",
+                            "amount": 123,
+                            "currency_type": "Seal",
+                            "reply_content": "太棒了！继续加油！🦭💦"
+                        }}
+                        
+                        If the comment does not include an address or is of low quality(English):
                         {{
                             "to_address": null,
                             "amount": null,
                             "currency_type": null,
                             "reply_content": "Thank you for your comment!",
                         }}
+                        
+                        If the comment does not include an address or is of low quality(Chinese):
+                        {{
+                            "to_address": null,
+                            "amount": null,
+                            "currency_type": null,
+                            "reply_content": "感谢您的评论！",
+                        }}
+                        
                         """
              },
             {"role": "user", "content": f"Please analyze the comment below, {comment}"}
@@ -66,10 +84,11 @@ async def analyze_reply_for_transfer(comment: str):
     # Parse the response content as JSON
     try:
         # # Remove any ```json or ``` formatting tags from content
-        cleaned_content = re.sub(r'```(?:json)?|```', "", content).strip()
+        cleaned_content = content.encode("utf-8", "ignore").decode("utf-8")
+        cleaned_content = re.sub(r'```(?:json)?|```', "", cleaned_content).strip()
         cleaned_content = cleaned_content.replace('\n', '').replace('\r', '')
         analysis_result = json.loads(cleaned_content)
-        # print(analysis_result)
+        print(analysis_result)
         return analysis_result
     except json.JSONDecodeError as e:
         print("Failed to parse JSON:", e)
