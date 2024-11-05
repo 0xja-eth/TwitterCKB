@@ -129,9 +129,9 @@ async def fetch_and_analyze_replies(user_id):
                                             continue
                                         # Mark user as claimed in Redis
                                         await redis_client.set(user_claim_key, "claimed")
+                                        print("Transfer Result:", transfer_result)
                                 except Exception as e:
                                     print(f"Transfer error:{e}")
-                                print("Transfer Result:", transfer_result)
                             if reply_content:
                                 success = False
                                 while not success:
