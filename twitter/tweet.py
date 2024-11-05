@@ -121,13 +121,9 @@ async def fetch_and_analyze_replies(user_id):
                                     if currency_type == "CKB":
                                         if CKB_MIN <= amount <= CKB_MAX:
                                             transfer_result = await transfer_ckb(to_address, amount)
-                                            if transfer_result is not None and reply_content is not None:
-                                                await reply.reply(reply_content)
                                     elif currency_type == "Seal":
                                         if SEAL_MIN <= amount <= SEAL_MAX:
                                             transfer_result = await transfer_token(to_address, amount, SEAL_XUDT_ARGS)
-                                            if transfer_result is not None and reply_content is not None:
-                                                await reply.reply(reply_content)
                                     else:
                                         print("Unrecognized currency type in response:", currency_type)
                                         continue
@@ -136,8 +132,16 @@ async def fetch_and_analyze_replies(user_id):
                                 except Exception as e:
                                     print(f"Transfer error:{e}")
                                 print("Transfer Result:", transfer_result)
-                            elif reply_content is not None:  # Chat replying
-                                await reply.reply(reply_content)
+                            if reply_content:
+                                success = False
+                                while not success:
+                                    try:
+                                        await reply.reply(reply_content)
+                                        success = True  # Exit loop on success
+                                    except Exception as e:
+                                        print(f"Failed to send reply, retrying: {e}")
+                                        await asyncio.sleep(60)  # Delay before retrying
+
                         await asyncio.sleep(30)
                         now_count += 1
                     if not is_fetch_and_analyze_active:
