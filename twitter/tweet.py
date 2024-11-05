@@ -115,20 +115,20 @@ async def fetch_and_analyze_replies(user_id):
 
                                     # Check if user has already claimed the reward
                                     has_claimed = await redis_client.get(user_claim_key)
-                                    if has_claimed:
-                                        print(f"User {to_user_id} has already claimed the reward.")
-                                        continue
-                                    if currency_type == "CKB":
-                                        if CKB_MIN <= amount <= CKB_MAX:
-                                            transfer_result = await transfer_ckb(to_address, amount)
-                                    elif currency_type == "Seal":
-                                        if SEAL_MIN <= amount <= SEAL_MAX:
-                                            transfer_result = await transfer_token(to_address, amount, SEAL_XUDT_ARGS)
-                                    else:
-                                        print("Unrecognized currency type in response:", currency_type)
-                                        continue
-                                    # Mark user as claimed in Redis
-                                    await redis_client.set(user_claim_key, "claimed")
+                                    if not has_claimed:
+                                        print(f"User {to_user_id} has not already claimed the reward.")
+                                        # continue
+                                        if currency_type == "CKB":
+                                            if CKB_MIN <= amount <= CKB_MAX:
+                                                transfer_result = await transfer_ckb(to_address, amount)
+                                        elif currency_type == "Seal":
+                                            if SEAL_MIN <= amount <= SEAL_MAX:
+                                                transfer_result = await transfer_token(to_address, amount, SEAL_XUDT_ARGS)
+                                        else:
+                                            print("Unrecognized currency type in response:", currency_type)
+                                            continue
+                                        # Mark user as claimed in Redis
+                                        await redis_client.set(user_claim_key, "claimed")
                                 except Exception as e:
                                     print(f"Transfer error:{e}")
                                 print("Transfer Result:", transfer_result)
