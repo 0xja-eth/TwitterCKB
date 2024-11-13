@@ -133,14 +133,11 @@ async def fetch_and_analyze_replies(user_id):
                                 except Exception as e:
                                     print(f"Transfer error:{e}")
                             if reply_content:
-                                success = False
-                                while not success:
-                                    try:
-                                        await reply.reply(reply_content)
-                                        success = True  # Exit loop on success
-                                    except Exception as e:
-                                        print(f"Failed to send reply, retrying: {e}")
-                                        await asyncio.sleep(60)  # Delay before retrying
+                                try:
+                                    await reply.reply(reply_content)
+                                except Exception as e:
+                                    print(f"Failed to send reply, retrying: {e}")
+                                    await asyncio.sleep(60)  # Delay before retrying
 
                         await asyncio.sleep(30)
                         now_count += 1
