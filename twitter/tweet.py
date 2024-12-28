@@ -23,12 +23,14 @@ hourly_transfer_totals = {
     "Seal": {"amount": 0, "timestamp": datetime.now()}
 }
 
+
 async def reset_hourly_limits():
     current_time = datetime.now()
     for currency, data in hourly_transfer_totals.items():
         if current_time - data["timestamp"] >= timedelta(hours=1):
             data["amount"] = 0
             data["timestamp"] = current_time
+
 
 async def post_tweet(content, image_paths=None):
     await login()  # Ensure login first

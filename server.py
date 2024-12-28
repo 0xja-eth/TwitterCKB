@@ -14,6 +14,8 @@ from openai_api.chat import chat_with_openai, send_emoticon_tweet, send_thanks_t
 from openai_api.thanks_gen import generate_thanks_tweet
 from twitter.tweet import fetch_and_analyze_replies, get_is_fetch_and_analyze_active, set_is_fetch_and_analyze_active, \
     fetch_and_analyze_stop_event
+from twitter.tweet_for_question import set_is_tweet_for_question_active, get_is_tweet_for_question_active, \
+    tweet_for_question_stop_event
 from utils.emoticon import generate_balance_emoticon
 
 app = FastAPI()
@@ -23,8 +25,6 @@ stop_event = threading.Event()
 transaction_stop_event = asyncio.Event()
 is_status_update_running = False
 is_transaction_listener_running = False
-
-
 
 class ChatRequest(BaseModel):
     message: str
@@ -209,3 +209,29 @@ async def stop_fetch_and_analyze_mode():
     fetch_and_analyze_stop_event.set()  # Set stop event to pause task
     return {"status": 200, "message": "Fetch and analyze mode stopped successfully."}
 
+
+@app.post("/start_tweet_for_question")
+async def start_tweet_for_question_mode():
+    if os.getenv("IS_TRANSFER", "False").lower() != "true":
+        return {"status": 403, "message": "Transfers are disabled by system environment setting."}
+
+    set_is_tweet_for_question_active(True)
+    tweet_for_question_stop_event.clear()
+    return {"status": 200, "message": "Tweet for question mode started successfully."}
+
+
+@app.post("/fetch_and_analyze_question_replies")
+async def fetch_and_analyze_question_replies(background_tasks: BackgroundTasks):
+    is_tweet_for_question_active = get_is_tweet_for_question_active()
+    if os.getenv("IS_TRANSFER", "False").lower() == "true" and is_tweet_for_question_active:
+        background_tasks.add_task(fetch_and_analyze_replies)
+        return {"status": 200, "message": "success"}
+    else:
+        return {"status": 403, "message": "success", "data": "Transfers are disabled by system settings."}
+
+
+@app.post("/stop_tweet_for_question")
+async def stop_tweet_for_question_mode():
+    set_is_tweet_for_question_active(False)
+    tweet_for_question_stop_event.set()  # Set stop event to pause task
+    return {"status": 200, "message": "Fetch and analyze mode stopped successfully."}
