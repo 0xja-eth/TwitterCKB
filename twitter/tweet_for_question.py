@@ -63,7 +63,7 @@ async def tweet_for_question():
             if existing_question_key:
                 print(f"Found an existing unanswered question: {existing_question_key}")
                 logger.info(f"Found an existing unanswered question: {existing_question_key}")
-                question_metadata = json.loads(await redis_client.get(existing_question_key))
+                question_metadata = json.loads(await redis_client.get(existing_question_key), object_hook=deserialize_datetime)
                 question_context = question_metadata["context"]
                 question_prompt = question_metadata["prompt"]
                 reference_answer = question_metadata["reference_answer"]
@@ -223,6 +223,7 @@ async def tweet_for_question():
             await asyncio.sleep(600)
 
         except Exception as e:
+            logger.error(f"Error in tweet_for_question: {e}")
             print(f"Error in tweet_for_question: {e}")
             await asyncio.sleep(60)  # Pause before retrying
 
