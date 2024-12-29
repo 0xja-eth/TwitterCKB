@@ -94,7 +94,7 @@ async def tweet_for_question():
                 question_prompt = question_data["question_prompt"]
                 reference_answer = question_data["reference_answer"]
                 amount = question_data["amount"]
-
+                timestamp = datetime.now(timezone.utc)
                 # Combine question context and prompt for the tweet
                 # Combine question context, prompt, and amount for the tweet
                 tweet_content = (
@@ -121,7 +121,7 @@ async def tweet_for_question():
                     "prompt": question_prompt,
                     "reference_answer": reference_answer,
                     "amount": amount,
-                    "timestamp": datetime.now(timezone.utc),
+                    "timestamp": timestamp,
                     "rewarded": False,
                     "last_processed_timestamp": None
                 }
@@ -147,6 +147,16 @@ async def tweet_for_question():
                     start_time=last_processed_timestamp,
                     max_results=5
                 )
+
+                # Check if the question has exceeded 3 hours
+                if datetime.now(timezone.utc) - timestamp > timedelta(hours=3):
+                    print(f"Question {existing_question_key} has expired (3 hours exceeded). Marking as rewarded.")
+                    logger.info(
+                        f"Question {existing_question_key} has expired (3 hours exceeded). Marking as rewarded.")
+                    question_metadata["rewarded"] = True
+                    await redis_client.set(existing_question_key,
+                                           json.dumps(question_metadata, default=serialize_datetime))
+                    break
 
                 if not mentions:
                     print("No new mentions found. Retrying...")
