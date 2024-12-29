@@ -1,5 +1,5 @@
 
-from new_client import TwitterClient
+from .new_client import TwitterClient
 
 
 def post_tweet(client: TwitterClient, text: str) -> dict:
@@ -46,7 +46,7 @@ def get_comments(client: TwitterClient, tweet_id: str, max_results: int = 10) ->
         raise RuntimeError(f"Error fetching comments: {e}")
 
 
-def get_user_mention_comments(client: TwitterClient, user_id: str, start_time=None, end_time=None, max_results=30) -> list:
+def get_user_mention_comments(client: TwitterClient, user_id: str, start_time=None, end_time=None, max_results=30):
     """
     get_user_mentions(client, user_id: str, start_time=None, end_time=None) -> list.
     :param client:
@@ -59,7 +59,7 @@ def get_user_mention_comments(client: TwitterClient, user_id: str, start_time=No
         raise ValueError("Client is not authorized. Please authorize first.")
 
     try:
-        comments = client.api_client.get_user_comments(user_id=user_id, start_time=start_time, end_time=end_time, max_results=max_results)
+        comments = client.api_client.get_users_mentions(id=user_id, start_time=start_time, end_time=end_time, max_results=max_results)
         return comments
     except Exception as e:
         raise RuntimeError(f"Error fetching comments: {e}")

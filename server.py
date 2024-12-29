@@ -9,13 +9,13 @@ import time
 from fastapi import FastAPI, BackgroundTasks
 from pydantic import BaseModel
 
-from config.config import redis_client, OUR_ADDRESS
+from config.config import redis_client, OUR_ADDRESS, HTTP_PROXY, HTTPS_PROXY
 from openai_api.chat import chat_with_openai, send_emoticon_tweet, send_thanks_tweet
 from openai_api.thanks_gen import generate_thanks_tweet
 from twitter.tweet import fetch_and_analyze_replies, get_is_fetch_and_analyze_active, set_is_fetch_and_analyze_active, \
     fetch_and_analyze_stop_event
 from twitter.tweet_for_question import set_is_tweet_for_question_active, get_is_tweet_for_question_active, \
-    tweet_for_question_stop_event
+    tweet_for_question_stop_event, tweet_for_question
 from utils.emoticon import generate_balance_emoticon
 
 app = FastAPI()
@@ -25,6 +25,11 @@ stop_event = threading.Event()
 transaction_stop_event = asyncio.Event()
 is_status_update_running = False
 is_transaction_listener_running = False
+
+# Set proxy
+if HTTP_PROXY != "" and HTTP_PROXY is not None:
+    os.environ['HTTP_PROXY'] = HTTP_PROXY
+    os.environ['HTTPS_PROXY'] = HTTPS_PROXY
 
 class ChatRequest(BaseModel):
     message: str
@@ -224,7 +229,7 @@ async def start_tweet_for_question_mode():
 async def fetch_and_analyze_question_replies(background_tasks: BackgroundTasks):
     is_tweet_for_question_active = get_is_tweet_for_question_active()
     if os.getenv("IS_TRANSFER", "False").lower() == "true" and is_tweet_for_question_active:
-        background_tasks.add_task(fetch_and_analyze_replies)
+        background_tasks.add_task(tweet_for_question)
         return {"status": 200, "message": "success"}
     else:
         return {"status": 403, "message": "success", "data": "Transfers are disabled by system settings."}
