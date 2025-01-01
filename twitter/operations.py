@@ -1,3 +1,6 @@
+import os
+
+import requests
 
 from .new_client import TwitterClient
 
@@ -79,4 +82,105 @@ def reply_comment(client: TwitterClient, comment_id: str, reply_text: str) -> di
         raise RuntimeError(f"Error posting reply: {e}")
 
 
+# Get tweet's Retweets
+def get_retweets(client: TwitterClient, tweet_id: str, max_results: int = 100) -> list:
+    """
+    get_retweets(client, tweet_id, max_results) -> list.
+    Fetches the Retweets for a given Tweet ID.
+    :param client: TwitterClient instance.
+    :param tweet_id: The ID of the Tweet for which Retweets are requested.
+    :param max_results: The maximum number of Retweets to retrieve (default 100).
+    :return: List of Retweets with user details.
+    """
+    if not client.api_client:
+        raise ValueError("Client is not authorized. Please authorize first.")
 
+    try:
+        # Use Twitter API v2  Retweets
+        endpoint = f"/2/tweets/{tweet_id}/retweets"  # Retweets API 的路径
+        params = {
+            "max_results": max_results,
+            "user.fields": "id,username,name,verified,profile_image_url"
+        }
+
+        # 调用 BaseClient 的 request 方法
+        response = client.api_client.request(
+            method="GET",
+            route=endpoint,  # 确保路径正确
+            params=params,
+            user_auth=False  # 如果需要用户身份认证，可设置为 True
+        )
+
+        # 检查响应并返回结果
+        if isinstance(response, requests.Response) and response.status_code == 200:
+            data = response.json()
+            retweets = []
+            for user in data.get("data", []):
+                retweets.append({
+                    "user_id": user.get("id"),
+                    "username": user.get("username"),
+                    "name": user.get("name"),
+                    "verified": user.get("verified"),
+                    "profile_image_url": user.get("profile_image_url")
+                })
+            return retweets
+        else:
+            # 如果 response 不是有效的成功响应，抛出错误
+            raise RuntimeError(f"Failed to fetch retweets: {response.status_code} - {response.text}")
+
+    except Exception as e:
+        raise RuntimeError(f"Error fetching retweets: {e}")
+
+
+def get_retweets_list(tweet_id: str, max_results: int = 100) -> list:
+    """
+    Fetches the Retweets (Tweet objects) for a given Tweet ID using Twitter API v2.
+
+    :param tweet_id: The ID of the Tweet for which Retweets are requested.
+    :param bearer_token: OAuth 2.0 Bearer Token for authentication.
+    :param max_results: The maximum number of Retweets to retrieve (default 100).
+    :return: List of Retweets with Tweet details.
+    """
+    # API URL
+    url = f"https://api.x.com/2/tweets/{tweet_id}/retweets"
+
+    bear_token = os.getenv("ContriAuthBearerToken")
+
+    # Request headers
+    headers = {
+        "Authorization": f"Bearer {bear_token}",
+        "User-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_6_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15'
+    }
+
+    # Query parameters
+    params = {
+        "max_results": max_results,
+        "tweet.fields": "id,text,author_id,created_at,public_metrics",
+    }
+
+    try:
+        # 发送 GET 请求
+        response = requests.get(url, headers=headers, params=params)
+
+        # 检查响应状态码
+        if response.status_code == 200:
+            data = response.json()
+            retweets = []
+            for retweet in data.get("data", []):
+                retweets.append({
+                    "id": retweet.get("id"),
+                    "text": retweet.get("text"),
+                    "author_id": retweet.get("author_id"),
+                    "created_at": retweet.get("created_at"),
+                    "public_metrics": retweet.get("public_metrics"),
+                })
+            return retweets
+        else:
+            # 如果响应非 200，抛出错误
+            raise RuntimeError(
+                f"Failed to fetch retweets: {response.status_code} - {response.text}"
+            )
+
+    except requests.exceptions.RequestException as e:
+        # 处理连接错误
+        raise RuntimeError(f"Error fetching retweets: {e}")

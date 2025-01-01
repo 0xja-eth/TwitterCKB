@@ -1,4 +1,4 @@
-# twitter/tweet_for_question.py
+# twitter/n_tweet_for_question.py
 import asyncio
 import json
 import os
@@ -12,7 +12,6 @@ from openai_api.question_and_answer_gen import generate_question_with_answer, ju
 from twitter.client import client
 from twitter.new_client import n_client
 from twitter.operations import post_tweet, get_user_mention_comments, reply_comment, get_retweets, get_retweets_list
-from utils.image_url import extract_invoice_from_qr
 
 # Global variables to control the process
 tweet_for_question_stop_event = asyncio.Event()
@@ -72,7 +71,6 @@ async def tweet_for_question():
                 amount = question_metadata["amount"]
                 timestamp = question_metadata["timestamp"]
                 question_key = existing_question_key
-
                 # tweet_id = question_metadata["tweet_id"]
                 # Check if the question has exceeded 3 hours
                 if datetime.now(timezone.utc) - timestamp > timedelta(hours=3):
@@ -140,27 +138,25 @@ async def tweet_for_question():
                 last_processed_timestamp = question_metadata.get("last_processed_timestamp")
                 if not last_processed_timestamp:
                     # Default to three months ago for the initial fetch
-                    last_processed_timestamp = datetime.now(timezone.utc)
+                    last_processed_timestamp = datetime.now(timezone.utc) - timedelta(days=90)
                 # last_processed_timestamp = datetime.now(timezone.utc) - timedelta(days=90)
-
-
-                # # Fetch mentions since the last processed timestamp
-                # author_id = None
-                # # Check for authors awaiting invoices
-                # author_keys = await redis_client.keys("author:*")
-                # author_key = None
-                # for author_key in author_keys:
-                #     author_data = json.loads(await redis_client.get(author_key))
-                #     awarded = author_data["awarded"]
-                #     # Ensure the key is a string
-                #     author_key = author_key.decode("utf-8")  # Convert bytes to string
-                #     if awarded:
-                #         continue
-                #     else:
-                #         # author_id = author_key.split(":")[1]
-                #         author_id = None
-                #         amount = author_data["amount"]
-                #         author_key = author_key
+                # Fetch mentions since the last processed timestamp
+                author_id = None
+                # Check for authors awaiting invoices
+                author_keys = await redis_client.keys("author:*")
+                author_key = None
+                for author_key in author_keys:
+                    author_data = json.loads(await redis_client.get(author_key))
+                    awarded = author_data["awarded"]
+                    # Ensure the key is a string
+                    author_key = author_key.decode("utf-8")  # Convert bytes to string
+                    if awarded:
+                        continue
+                    else:
+                        # author_id = author_key.split(":")[1]
+                        author_id = None
+                        amount = author_data["amount"]
+                        author_key = author_key
 
                 mentions = get_user_mention_comments(
                     n_client,
@@ -186,9 +182,7 @@ async def tweet_for_question():
 
                 if mentions.data is None:
                     print("No new mentions found. Retrying...")
-                    question_metadata["last_processed_timestamp"] = last_processed_timestamp
-                    await redis_client.set(question_key, json.dumps(question_metadata, default=serialize_datetime))
-                    await asyncio.sleep(120)
+                    await asyncio.sleep(360)
                     continue
 
                 for mention in mentions.data:
@@ -198,11 +192,9 @@ async def tweet_for_question():
                     tweet = n_client.api_client.get_tweet(
                         id=mention.id,
                         user_auth=True,
-                        expansions=["referenced_tweets.id", "attachments.media_keys", "attachments.media_source_tweet", "article.media_entities"],
-                        tweet_fields=["author_id", "in_reply_to_user_id"],
-                        media_fields=["url", "type"]
+                        expansions="referenced_tweets.id",
+                        tweet_fields=["author_id", "in_reply_to_user_id"]
                     )
-                    author_id = None
                     if author_id and amount:
                         if tweet.data.get("author_id", None) != author_id:
                             continue
@@ -231,12 +223,7 @@ async def tweet_for_question():
                         mention_text = tweet.data.get("text", "")
                         mention_id = mention.id
                         n_author_id = tweet.data.get("author_id", None)
-                        media_url = tweet.includes['media'][0].data.get("url", None)
 
-                        extract_invoice = extract_invoice_from_qr(media_url)
-
-                        if extract_invoice:
-                            mention_text = f"{mention_text}\n\n{extract_invoice}"
                         logger.info(f"mention_text: {mention_text} mention_id: {mention_id}")
 
                         # Step 3: Evaluate mention using judge_answer_for_score
@@ -251,7 +238,7 @@ async def tweet_for_question():
                         invoice = result.get("invoice", None)
                         reply_content = result.get("reply_content", None)
 
-                        combine_reply_content = f"{reply_content}\n\n Your score is {score}✨🤖🌐"
+                        combine_reply_content = f"{reply_content}\n\n your score is {score}"
 
                         if score >= 85:  # Only reward if the score is >= 50
                             if invoice and amount:
@@ -266,7 +253,7 @@ async def tweet_for_question():
                                         response = await transfer_ckb_with_invoice(invoice, amount)
                                     if response:
                                         # Reply and acknowledge the user's response
-                                        reply_content = combine_reply_content
+                                        reply_content = reply_content
                                         reply_comment(n_client, mention_id, reply_content)
                                         await redis_client.set(question_key,
                                                                json.dumps(question_metadata, default=serialize_datetime))
@@ -300,12 +287,9 @@ async def tweet_for_question():
                 # Update the last processed timestamp in Redis
                 question_metadata["last_processed_timestamp"] = datetime.now(timezone.utc)
                 await redis_client.set(question_key, json.dumps(question_metadata, default=serialize_datetime))
-                logger.info(f"finish setting question metadata: {question_metadata}")
                 if not is_tweet_for_question_active:
                     return
                 await asyncio.sleep(120)  # Pause between fetches
-                if question_metadata["rewarded"]:
-                    break
             if not is_tweet_for_question_active:
                 return
             await asyncio.sleep(600)

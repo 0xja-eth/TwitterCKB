@@ -501,6 +501,101 @@ async def judge_answer_for_score(question_context, question_prompt, reference_an
             "reply_content": "Sorry, an unexpected error occurred while processing your answer."
         }
 
+
+async def detect_invoice_in_answer(user_answer):
+    """
+    Detect if an invoice exists in the user's answer using GPT-4o-mini.
+
+    :param user_answer: The user's submitted answer
+    :return: A dictionary containing is_invoice, invoice, and reply_content
+    """
+    # Construct the GPT prompt
+    prompt = f"""
+    You are an AI assistant specializing in Lightning Network and CKB-related topics. Your task is to identify if a user's response contains a valid Lightning Network invoice and provide appropriate feedback.
+
+    ### Instructions:
+    1. **Invoice Detection**:
+       - Look for a valid Lightning Network `invoice` in the user's response.
+       - An invoice typically looks like this: "fibt400000..." or similarly structured strings.
+       - If a valid invoice is found, set `"is_invoice": true` and return the extracted invoice.
+       - If no valid invoice is found, set `"is_invoice": false`.
+
+    2. **Generate Reply Content**:
+       - If an invoice is present, generate a polite response confirming receipt of the invoice.
+       - If no invoice is present, politely request the user to provide one.
+
+    ### Inputs:
+    - **User Answer**: {user_answer}
+
+    ### Output Format:
+    Provide a JSON object with the following fields:
+    {{
+        "is_invoice": bool,          # True if an invoice is present, False otherwise.
+        "invoice": str or null,      # The extracted invoice, or null if no invoice is present.
+        "reply_content": str         # A polite response for the user.
+    }}
+
+    ### Examples:
+    1. If the user's response contains an invoice:
+    {{
+        "is_invoice": true,
+        "invoice": "fibt400000...",
+        "reply_content": "Thank you for providing your invoice. It has been successfully noted! 🚀"
+    }}
+
+    2. If the user's response does not contain an invoice:
+    {{
+        "is_invoice": false,
+        "invoice": null,
+        "reply_content": "We couldn't find an invoice in your response. Could you please provide one? 😊"
+    }}
+
+    Remember:
+    - Be concise and polite in your replies.
+    - Ensure the output is a valid JSON object.
+    """
+    try:
+        # Call GPT-4o-mini to generate a response
+        response = ai_client.chat.completions.create(
+            model="gpt-4o-mini-2024-07-18",
+            messages=[
+                {"role": "system", "content": "You are an expert in identifying Lightning Network invoices."},
+                {"role": "user", "content": prompt},
+            ],
+        )
+        content = response.choices[0].message.content
+
+        # Clean and parse the response
+        cleaned_content = re.sub(r"```(?:json)?", "", content).strip()
+        cleaned_content = cleaned_content.replace("\n", "").replace("\r", "")
+        result = json.loads(cleaned_content)
+
+        # Validate required fields
+        required_fields = ["is_invoice", "invoice", "reply_content"]
+        for field in required_fields:
+            if field not in result:
+                raise ValueError(f"Missing required field in response: {field}")
+
+        print(result)
+        return result
+
+    except json.JSONDecodeError as e:
+        print("Failed to parse JSON:", e)
+        print("Response content:", response.choices[0].message.content)
+        return {
+            "is_invoice": False,
+            "invoice": None,
+            "reply_content": "Sorry, we couldn't process your response. Please try again later. 🙏"
+        }
+    except Exception as e:
+        print(f"Error in detect_invoice_in_answer: {e}")
+        return {
+            "is_invoice": False,
+            "invoice": None,
+            "reply_content": "Sorry, an unexpected error occurred while processing your response. 🙏"
+        }
+
+
 question_context="Investigating the evolution of agent functionality on CKB."
 question_prompt="How does community input shape AI agents' memory on CKB?"
 reference_answer=("Community input plays a crucial role in shaping AI agents' memory on CKB. Initially, they have a foundational "
