@@ -7,21 +7,21 @@ from pyzbar.pyzbar import decode
 
 def extract_invoice_from_local_qr(image_path):
     """
-    从本地二维码图片文件中提取 Lightning Network Invoice
-    :param image_path: 图片文件路径
-    :return: 提取的 invoice 或 None
+    Extract Lightning Network Invoice from a local QR code image file
+    :param image_path: Path to the image file
+    :return: Extracted invoice or None
     """
     try:
-        # 打开本地图片文件
+        # Open the local image file
         image = Image.open(image_path)
 
-        # 使用 pyzbar 解码二维码
+        # Decode the QR code using pyzbar
         decoded_objects = decode(image)
 
-        # 遍历解码结果，寻找 invoice
+        # Iterate through the decoded results to find the invoice
         for obj in decoded_objects:
-            data = obj.data.decode("utf-8")  # 解码二维码内容
-            if "fibt" in data:  # 假设 invoice 包含 "fibt" 前缀
+            data = obj.data.decode("utf-8")  # Decode the QR code content
+            if "fibt" in data:  # Assuming the invoice contains the "fibt" prefix
                 return data
 
         print("No invoice found in the QR code.")
@@ -34,21 +34,21 @@ def extract_invoice_from_local_qr(image_path):
 
 def extract_invoice_from_qr(image_url):
     """
-    从二维码图片 URL 提取 Lightning Network Invoice
-    :param image_url: 图片 URL
-    :return: 提取的 invoice 或 None
+    Extract Lightning Network Invoice from a QR code image URL
+    :param image_url: URL of the image
+    :return: Extracted invoice or None
     """
     try:
-        # Step 1: 下载图片
+        # Step 1: Download the image
         response = requests.get(image_url)
-        response.raise_for_status()  # 检查请求是否成功
+        response.raise_for_status()  # Check if the request was successful
         image = Image.open(BytesIO(response.content))
 
-        # Step 2: 解析二维码
+        # Step 2: Parse the QR code
         decoded_objects = decode(image)
         for obj in decoded_objects:
-            data = obj.data.decode("utf-8")  # 解码二维码内容
-            if "fibt" in data:  # 假设 invoice 包含 "fibt" 前缀
+            data = obj.data.decode("utf-8")  # Decode the QR code content
+            if "fibt" in data:  # Assuming the invoice contains the "fibt" prefix
                 return data
 
         print("No invoice found in the QR code.")
@@ -57,10 +57,3 @@ def extract_invoice_from_qr(image_url):
     except Exception as e:
         print(f"Error extracting invoice from QR code: {e}")
         return None
-
-# image_path = "../data/test.png"
-#
-# invoice = extract_invoice_from_local_qr(image_path)
-# print(invoice)
-
-
