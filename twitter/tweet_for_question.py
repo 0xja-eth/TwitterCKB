@@ -253,7 +253,7 @@ async def tweet_for_question():
 
                         combine_reply_content = f"{reply_content}\n\n Your score is {score}✨🤖🌐"
 
-                        if score >= 85:  # Only reward if the score is >= 50
+                        if score >= 50:  # Only reward if the score is >= 50
                             if invoice and amount:
                                 # Mark the question as rewarded in Redis
                                 question_metadata["rewarded"] = True
