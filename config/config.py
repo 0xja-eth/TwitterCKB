@@ -35,6 +35,8 @@ SEAL_MIN = int(os.getenv("SEAL_MIN", 1))
 SEAL_MAX = int(os.getenv("SEAL_MAX", 10))
 SEAL_XUDT_ARGS = os.getenv("SEAL_XUDT_ARGS", "")
 
+MIN_AWARD_SCORE = int(os.getenv("MIN_AWARD_SCORE", 85))
+
 # set SSL 和 SNI
 ssl_context = None
 if REDIS_TLS:

@@ -5,7 +5,7 @@ import os
 from datetime import datetime, timedelta, timezone
 
 from ckb.ckb_service import transfer_ckb, fetch_invoice_detail, transfer_ckb_with_invoice
-from config.config import redis_client, CKB_MIN, CKB_MAX
+from config.config import redis_client, CKB_MIN, CKB_MAX, MIN_AWARD_SCORE
 from config.logging_config import logger
 from openai_api.question_and_answer_gen import generate_question_with_answer, judge_answer_for_score, \
     detect_invoice_in_answer
@@ -41,6 +41,7 @@ def deserialize_datetime(obj):
 
 async def tweet_for_question():
     user_id = n_client.api_client.get_me().data.id
+    post_wait_time_alter_3h = 300  # Time to wait after 3 hours if answered late (5 minutes)
     """
     Main function to handle posting questions, processing mentions, and rewarding answers.
     """
@@ -72,17 +73,17 @@ async def tweet_for_question():
                 amount = question_metadata["amount"]
                 timestamp = question_metadata["timestamp"]
                 question_key = existing_question_key
+                current_question_id = question_metadata["tweet_id"]
 
-                # tweet_id = question_metadata["tweet_id"]
-                # Check if the question has exceeded 3 hours
-                if datetime.now(timezone.utc) - timestamp > timedelta(hours=3):
-                    print(f"Question {existing_question_key} has expired (3 hours exceeded). Marking as rewarded.")
-                    logger.info(
-                        f"Question {existing_question_key} has expired (3 hours exceeded). Marking as rewarded.")
-                    question_metadata["rewarded"] = True
-                    await redis_client.set(existing_question_key,
-                                           json.dumps(question_metadata, default=serialize_datetime))
-                    continue
+                # # Check if the question has exceeded 3 hours
+                # if datetime.now(timezone.utc) - timestamp > timedelta(hours=3):
+                #     print(f"Question {existing_question_key} has expired (3 hours exceeded). Marking as rewarded.")
+                #     logger.info(
+                #         f"Question {existing_question_key} has expired (3 hours exceeded). Marking as rewarded.")
+                #     question_metadata["rewarded"] = True
+                #     await redis_client.set(existing_question_key,
+                #                            json.dumps(question_metadata, default=serialize_datetime))
+                #     continue
 
             else:
                 # Step 1: Generate a question and reference answer
@@ -129,7 +130,9 @@ async def tweet_for_question():
                     "last_processed_timestamp": None,
                     "tweet_id": tweet_id,
                 }
+                current_question_id = tweet_id
                 await redis_client.set(question_key, json.dumps(question_metadata, default=serialize_datetime))
+
             # Step 2: Fetch mentions and process comments
             while not tweet_for_question_stop_event.is_set():
                 if not is_tweet_for_question_active:
@@ -137,30 +140,11 @@ async def tweet_for_question():
                 question_metadata = json.loads(await redis_client.get(question_key), object_hook=deserialize_datetime)
                 if question_metadata["rewarded"]:
                     break  # If the question has already been rewarded, stop processing this question
-                last_processed_timestamp = question_metadata.get("last_processed_timestamp")
-                if not last_processed_timestamp:
-                    # Default to three months ago for the initial fetch
-                    last_processed_timestamp = datetime.now(timezone.utc)
-                # last_processed_timestamp = datetime.now(timezone.utc) - timedelta(days=90)
-
-
-                # # Fetch mentions since the last processed timestamp
-                # author_id = None
-                # # Check for authors awaiting invoices
-                # author_keys = await redis_client.keys("author:*")
-                # author_key = None
-                # for author_key in author_keys:
-                #     author_data = json.loads(await redis_client.get(author_key))
-                #     awarded = author_data["awarded"]
-                #     # Ensure the key is a string
-                #     author_key = author_key.decode("utf-8")  # Convert bytes to string
-                #     if awarded:
-                #         continue
-                #     else:
-                #         # author_id = author_key.split(":")[1]
-                #         author_id = None
-                #         amount = author_data["amount"]
-                #         author_key = author_key
+                # last_processed_timestamp = question_metadata.get("last_processed_timestamp")
+                # if not last_processed_timestamp:
+                #     # Default to three months ago for the initial fetch
+                #     last_processed_timestamp = datetime.now(timezone.utc)
+                last_processed_timestamp = datetime.now(timezone.utc) - timedelta(days=90)
 
                 mentions = get_user_mention_comments(
                     n_client,
@@ -169,15 +153,15 @@ async def tweet_for_question():
                     max_results=5
                 )
 
-                # Check if the question has exceeded 3 hours
-                if datetime.now(timezone.utc) - timestamp > timedelta(hours=3):
-                    print(f"Question {existing_question_key} has expired (3 hours exceeded). Marking as rewarded.")
-                    logger.info(
-                        f"Question {existing_question_key} has expired (3 hours exceeded). Marking as rewarded.")
-                    question_metadata["rewarded"] = True
-                    await redis_client.set(existing_question_key,
-                                           json.dumps(question_metadata, default=serialize_datetime))
-                    break
+                # # Check if the question has exceeded 3 hours
+                # if datetime.now(timezone.utc) - timestamp > timedelta(hours=3):
+                #     print(f"Question {existing_question_key} has expired (3 hours exceeded). Marking as rewarded.")
+                #     logger.info(
+                #         f"Question {existing_question_key} has expired (3 hours exceeded). Marking as rewarded.")
+                #     question_metadata["rewarded"] = True
+                #     await redis_client.set(existing_question_key,
+                #                            json.dumps(question_metadata, default=serialize_datetime))
+                #     break
 
                 if not mentions:
                     print("No new mentions found. Retrying...")
@@ -202,100 +186,81 @@ async def tweet_for_question():
                         tweet_fields=["author_id", "in_reply_to_user_id"],
                         media_fields=["url", "type"]
                     )
-                    author_id = None
-                    if author_id and amount:
-                        if tweet.data.get("author_id", None) != author_id:
-                            continue
-                        else:
-                            user_answer = tweet.data.get("text", "")
-                            invoice_result = await detect_invoice_in_answer(user_answer)
-                            invoice = invoice_result.get("invoice", None)
-                            reply_content = invoice_result.get("reply_content", "")
-                            if invoice_result.get("is_invoice", False):
-                                # Perform the transfer
-                                transfer_response = await transfer_ckb_with_invoice(invoice, amount)
-                                if transfer_response:
-                                    print(f"Transferred {amount} CKB to {invoice}")
-                                    reply_comment(n_client, mention.id, reply_content)
+                    mention_text = tweet.data.get("text", "")
+                    mention_id = mention.id
+                    media_url = tweet.includes['media'][0].data.get("url", None)
 
-                                    # Mark question as rewarded and remove author key
-                                    question_metadata["rewarded"] = True
+                    referenced_tweet_id = tweet.data.get("referenced_tweets", [{}])[0].get("id", None)
+
+                    # Check if the mention is in response to the current question
+                    if referenced_tweet_id != current_question_id:
+                        # TODO Answer the comment
+                        # reply_comment(n_client, mention.id,
+                        #               "This question has ended. Please participate in the latest question!")
+                        continue
+
+                    extract_invoice = extract_invoice_from_qr(media_url)
+
+                    if extract_invoice:
+                        mention_text = f"{mention_text}\n\n{extract_invoice}"
+
+                    logger.info(f"mention_text: {mention_text} mention_id: {mention_id}")
+
+                    # Step 3: Evaluate mention using judge_answer_for_score
+                    result = await judge_answer_for_score(
+                        question_context=question_context,
+                        question_prompt=question_prompt,
+                        reference_answer=reference_answer,
+                        user_answer=mention_text
+                    )
+
+                    score = result.get("score", 0)
+                    invoice = result.get("invoice", None)
+                    reply_content = result.get("reply_content", None)
+
+                    combine_reply_content = f"{reply_content}\n\n Your score is {score}✨🤖🌐"
+
+                    if score >= MIN_AWARD_SCORE:  # Only reward if the score is >= 50
+                        if invoice and amount:
+                            # Mark the question as rewarded in Redis
+                            question_metadata["rewarded"] = True
+                            data = await fetch_invoice_detail(invoice)
+                            if data:
+                                transfer_response = None
+                                if CKB_MIN <= amount <= CKB_MAX:
+                                    transfer_response = await transfer_ckb_with_invoice(invoice, amount)
+                                if transfer_response:
+                                    # Reply and acknowledge the user's response
+                                    reply_content = combine_reply_content
+                                    reply_comment(n_client, mention_id, reply_content)
                                     await redis_client.set(question_key,
                                                            json.dumps(question_metadata, default=serialize_datetime))
-                                    await redis_client.delete(author_key)
-                                    break
-                            else:
-                                reply_comment(n_client, mention.id, reply_content)
+                                    print(f"Rewarded user with invoice {invoice} for {amount} in CKB")
 
-                    else:
-                        mention_text = tweet.data.get("text", "")
-                        mention_id = mention.id
-                        n_author_id = tweet.data.get("author_id", None)
-                        media_url = tweet.includes['media'][0].data.get("url", None)
-
-                        extract_invoice = extract_invoice_from_qr(media_url)
-
-                        if extract_invoice:
-                            mention_text = f"{mention_text}\n\n{extract_invoice}"
-                        logger.info(f"mention_text: {mention_text} mention_id: {mention_id}")
-
-                        # Step 3: Evaluate mention using judge_answer_for_score
-                        result = await judge_answer_for_score(
-                            question_context=question_context,
-                            question_prompt=question_prompt,
-                            reference_answer=reference_answer,
-                            user_answer=mention_text
-                        )
-
-                        score = result.get("score", 0)
-                        invoice = result.get("invoice", None)
-                        reply_content = result.get("reply_content", None)
-
-                        combine_reply_content = f"{reply_content}\n\n Your score is {score}✨🤖🌐"
-
-                        if score >= 50:  # Only reward if the score is >= 50
-                            if invoice and amount:
-                                # Mark the question as rewarded in Redis
-                                question_metadata["rewarded"] = True
-
-                                # TODO finish transfer logic
-                                data = await fetch_invoice_detail(invoice)
-                                if data:
-                                    response = None
-                                    if CKB_MIN <= amount <= CKB_MAX:
-                                        response = await transfer_ckb_with_invoice(invoice, amount)
-                                    if response:
-                                        # Reply and acknowledge the user's response
-                                        reply_content = combine_reply_content
-                                        reply_comment(n_client, mention_id, reply_content)
-                                        await redis_client.set(question_key,
-                                                               json.dumps(question_metadata, default=serialize_datetime))
-                                        print(f"Rewarded user with invoice {invoice} for {amount} in CKB")
-                                break  # Move to the next question after rewarding
-                            else:
-                                # Reply without rewarding if no valid address or amount
-                                reply_content = combine_reply_content
-                                reply_comment(n_client, mention_id, reply_content)
-                                print(f"Send response: {reply_content}")
-
-                                # Store the user in Redis for invoice awaiting
-                                author_key = f"author:{n_author_id}"
-                                await redis_client.set(author_key, json.dumps({
-                                    "mention_id": mention_id,
-                                    "question_key": question_key,
-                                    "amount": amount,
-                                    "awarded": False,
-                                }))
-                                # reply_comment(n_client, mention_id, reply_content)
-                                print(f"Awaiting invoice from user {n_author_id}")
-                                break
-
+                                    # Wait based on whether 3 hours have passed
+                                    elapsed_time = datetime.now(timezone.utc) - timestamp
+                                    if elapsed_time < timedelta(hours=3):
+                                        remaining_time = (timedelta(hours=3) - elapsed_time).seconds
+                                        print(f"Waiting {remaining_time} seconds for 3-hour window.")
+                                        await asyncio.sleep(remaining_time)
+                                    else:
+                                        print(
+                                            f"Waiting {post_wait_time_alter_3h} seconds before posting a new question.")
+                                        await asyncio.sleep(post_wait_time_alter_3h)
+                            break  # Move to the next question after rewarding
                         else:
-                            print(f"Low quality answer from mention ID {mention_id}, not rewarded.")
                             # Reply without rewarding if no valid address or amount
                             reply_content = combine_reply_content
                             reply_comment(n_client, mention_id, reply_content)
                             print(f"Send response: {reply_content}")
+                            break
+
+                    else:
+                        print(f"Low quality answer from mention ID {mention_id}, not rewarded.")
+                        # Reply without rewarding if no valid address or amount
+                        reply_content = combine_reply_content
+                        reply_comment(n_client, mention_id, reply_content)
+                        print(f"Send response: {reply_content}")
 
                 # Update the last processed timestamp in Redis
                 question_metadata["last_processed_timestamp"] = datetime.now(timezone.utc)
