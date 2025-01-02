@@ -140,11 +140,11 @@ async def tweet_for_question():
                 question_metadata = json.loads(await redis_client.get(question_key), object_hook=deserialize_datetime)
                 if question_metadata["rewarded"]:
                     break  # If the question has already been rewarded, stop processing this question
-                # last_processed_timestamp = question_metadata.get("last_processed_timestamp")
-                # if not last_processed_timestamp:
-                #     # Default to three months ago for the initial fetch
-                #     last_processed_timestamp = datetime.now(timezone.utc)
-                last_processed_timestamp = datetime.now(timezone.utc) - timedelta(days=90)
+                last_processed_timestamp = question_metadata.get("last_processed_timestamp")
+                if not last_processed_timestamp:
+                    # Default to three months ago for the initial fetch
+                    last_processed_timestamp = datetime.now(timezone.utc)
+                # last_processed_timestamp = datetime.now(timezone.utc) - timedelta(days=90)
 
                 mentions = get_user_mention_comments(
                     n_client,
